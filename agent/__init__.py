@@ -21,7 +21,7 @@ Usage:
 from dotenv import load_dotenv
 load_dotenv(override=True)
 
-# Configure observability (LangSmith, logging)
+# Configure observability (LangSmith, OpenTelemetry, logging)
 import os
 import sys
 from pathlib import Path
@@ -31,13 +31,33 @@ utils_path = Path(__file__).parent.parent / "utils"
 if str(utils_path) not in sys.path:
     sys.path.insert(0, str(utils_path.parent))
 
-# Enable LangSmith tracing by default if not explicitly disabled
-if os.getenv("LANGCHAIN_TRACING_V2") is None:
-    # Only enable if API key is available
-    if os.getenv("LANGCHAIN_API_KEY") or os.getenv("OPENAI_API_KEY"):
-        os.environ["LANGCHAIN_TRACING_V2"] = "true"
-        os.environ["LANGCHAIN_PROJECT"] = os.getenv("LANGCHAIN_PROJECT", "intent-agent-poc")
-        os.environ["LANGCHAIN_ENDPOINT"] = os.getenv("LANGCHAIN_ENDPOINT", "https://api.smith.langchain.com")
+# Configure observability based on environment variables
+try:
+    from utils.observability import configure_observability
+
+    # Enable LangSmith by default (set to "true" in .env or disabled with "false")
+    enable_langsmith = os.getenv("LANGCHAIN_TRACING_V2", "true").lower() == "true"
+
+    # Enable OpenTelemetry if ENABLE_OPENTELEMETRY is set or OTEL_EXPORTER is configured
+    enable_otel = os.getenv("ENABLE_OPENTELEMETRY", "true").lower() == "true"
+
+    # Configure all observability features
+    observability_status = configure_observability(
+        enable_logging=True,
+        enable_langsmith=enable_langsmith,
+        enable_opentelemetry=enable_otel,
+        langsmith_project=os.getenv("LANGCHAIN_PROJECT", "intent-agent-poc"),
+        otel_service_name=os.getenv("OTEL_SERVICE_NAME", "intent-agent"),
+        otel_exporter=os.getenv("OTEL_EXPORTER", "console")
+    )
+
+    # Store status for later access
+    OBSERVABILITY_STATUS = observability_status
+
+except Exception as e:
+    # Fallback if observability setup fails
+    print(f"Warning: Observability configuration failed: {e}")
+    OBSERVABILITY_STATUS = {"logging": False, "langsmith": False, "opentelemetry": False}
 
 # Tools
 from agent.tools import (
@@ -168,6 +188,9 @@ __all__ = [
 
     # Graph
     "agent_graph",
+
+    # Observability
+    "OBSERVABILITY_STATUS",
 ]
 
 
