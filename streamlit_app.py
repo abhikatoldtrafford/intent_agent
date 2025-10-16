@@ -12,6 +12,7 @@ Features:
 - Test suite runner
 - Demo runner
 - Workflow visualization
+- Observability dashboard
 - Complete documentation
 
 Usage:
@@ -401,12 +402,13 @@ with tab_home:
 
     st.markdown("""
     **Get Started:**
-    1. Navigate to the **Agent Testing** tab to query the agent
+    1. Navigate to the **Agent Testing** tab to query the agent with live feedback loop visibility
     2. Explore **RAG Service** to search documentation
     3. View **SQL Database** to inspect metrics data
     4. Run **Tests** to validate all components
     5. Try **Demos** for example workflows
     6. Check **Workflow** to visualize the graph
+    7. Monitor **Observability** for detailed execution traces
     """)
 
 
@@ -1050,13 +1052,32 @@ with tab_agent:
     st.markdown("### 📝 Enter Query")
 
     query_examples = [
+        # Simple queries (good for first-time demos)
         "What is the current latency for api-gateway?",
         "How do I configure API rate limiting?",
         "Calculate the average of 150, 200, and 250",
-        "Compare CPU usage between api-gateway and auth-service",
-        "What is the error rate and how do I reduce it?",
         "Is business-logic service healthy?",
-        "What was the average memory usage last week?"
+
+        # Complex queries (showcase intelligent routing)
+        "--- Complex Multi-Source Queries ---",
+        "Show me all services where CPU usage exceeded 80% in the last 3 days and rank them by severity",
+        "Compare current error rates across all services and identify which one needs immediate attention",
+        "What are the deployment best practices and show me if our current services follow them based on health metrics",
+        "Calculate the percentage increase in latency for data-processor between last week and now",
+        "Show me historical memory trends for auth-service over 7 days and explain what might cause spikes",
+
+        # Edge cases
+        "--- Queries Testing Edge Cases ---",
+        "Which service had degraded status most frequently in the past 48 hours?",
+        "Show me error patterns during business hours vs off-hours for payment-service",
+        "What is the correlation between high CPU and error rates in business-logic service?",
+        "Explain troubleshooting steps and show me current metrics that need troubleshooting",
+
+        # Retry triggers (if API is down or vague)
+        "--- Queries That May Trigger Feedback Loop ---",
+        "Show me metrics for all services",
+        "stuff about things",  # Intentionally vague
+        "Tell me about performance"  # Ambiguous
     ]
 
     selected_example = st.selectbox(
@@ -1088,10 +1109,24 @@ with tab_agent:
 
     # Execute Agent
     if run_button and user_query:
+        # Node descriptions for better understanding
+        node_descriptions = {
+            "classify_intent": "🎯 Classifies your query using OpenAI GPT-4.1-mini into one of 6 intent types",
+            "select_tools": "🛠️ Selects appropriate tools based on classified intent (API, RAG, SQL, Calculator)",
+            "execute_tools": "⚡ Executes selected tools in parallel-safe manner with error isolation",
+            "aggregate_results": "📊 Combines outputs from all tools and assesses data quality",
+            "perform_inference": "🧠 Analyzes data: threshold checks, comparisons, trends, recommendations",
+            "check_feedback": "🔄 Evaluates confidence and decides: retry with different tools OR proceed to response",
+            "format_response": "✨ Creates final markdown-formatted answer with complete trace"
+        }
+
         # Create placeholders for live status updates
         status_container = st.container()
         with status_container:
             st.markdown("### 🔄 Live Agent Execution")
+
+            # Add note about observability
+            st.info("💡 **Tip:** For detailed trace analysis, check the **Observability** tab after execution completes!")
 
             # Node progress indicators
             st.markdown("**Workflow Progress:**")
@@ -1104,7 +1139,14 @@ with tab_agent:
                 with col:
                     node_indicators[node_name] = st.empty()
                     node_indicators[node_name].markdown(f"⏸️ **{idx}**\n{node_name.replace('_', ' ').title()[:15]}...",
-                                                        help=node_name)
+                                                        help=node_descriptions[node_name])
+
+            st.markdown("---")
+
+            # DETAILED STEP-BY-STEP EXECUTION LOG (NEW)
+            st.markdown("### 📋 Detailed Execution Steps")
+            execution_log_placeholder = st.empty()
+            execution_steps = []  # Store all steps for display
 
             st.markdown("---")
             status_placeholder = st.empty()
@@ -1161,6 +1203,67 @@ with tab_agent:
 
                     completed_nodes[node_name] = duration
 
+                    # CAPTURE DETAILED STEP INFORMATION
+                    step_info = {
+                        'node_name': node_name,
+                        'idx': idx,
+                        'duration': duration,
+                        'description': node_descriptions[node_name]
+                    }
+
+                    # Extract key information from state for each node type
+                    if node_name == "classify_intent":
+                        step_info['output'] = f"Intent: **{state.get('intent', 'unknown')}** (confidence: {state.get('confidence', 0):.2f})"
+                    elif node_name == "select_tools":
+                        tools = state.get('selected_tools', [])
+                        step_info['output'] = f"Selected tools: **{', '.join(tools) if tools else 'none'}**"
+                        step_info['reasoning'] = state.get('tool_selection_reasoning', 'N/A')
+                    elif node_name == "execute_tools":
+                        tools_executed = state.get('tools_executed', [])
+                        tool_errors = state.get('tool_errors', {})
+                        step_info['output'] = f"Executed: **{', '.join(tools_executed)}**"
+                        if tool_errors:
+                            step_info['errors'] = f"⚠️ Errors: {len(tool_errors)} tool(s)"
+                    elif node_name == "aggregate_results":
+                        data_quality = state.get('data_quality', {})
+                        completeness = data_quality.get('completeness', 0)
+                        step_info['output'] = f"Data quality: **{completeness:.0%}** complete"
+                    elif node_name == "perform_inference":
+                        findings = state.get('findings', [])
+                        recommendations = state.get('recommendations', [])
+                        step_info['output'] = f"Generated: **{len(findings)} findings**, **{len(recommendations)} recommendations**"
+                    elif node_name == "check_feedback":
+                        retry_count = state.get('retry_count', 0)
+                        confidence = state.get('confidence', 0)
+                        if retry_count > 0:
+                            step_info['output'] = f"🔄 **RETRY triggered** (attempt #{retry_count}, confidence: {confidence:.2f})"
+                        else:
+                            step_info['output'] = f"✅ **PROCEED** (confidence: {confidence:.2f} ≥ threshold)"
+                    elif node_name == "format_response":
+                        answer_len = len(state.get('final_answer', ''))
+                        step_info['output'] = f"Generated final answer: **{answer_len} characters**"
+
+                    execution_steps.append(step_info)
+
+                    # Update the execution log display in real-time
+                    with execution_log_placeholder.container():
+                        for step in execution_steps:
+                            step_idx = step['idx']
+                            step_node = step['node_name']
+                            step_duration = step['duration']
+                            step_desc = step['description']
+                            step_output = step.get('output', '')
+
+                            # Create expandable section for each step
+                            with st.expander(f"**Step {step_idx}/7: {step_node.replace('_', ' ').title()}** ✅ ({step_duration:.0f}ms)", expanded=(step_idx == idx)):
+                                st.markdown(f"**Purpose:** {step_desc}")
+                                if step_output:
+                                    st.markdown(f"**Result:** {step_output}")
+                                if 'reasoning' in step:
+                                    st.markdown(f"**Reasoning:** {step['reasoning']}")
+                                if 'errors' in step:
+                                    st.markdown(f"{step['errors']}")
+
                 # Keep the final state
                 result = state
 
@@ -1214,6 +1317,96 @@ with tab_agent:
             })
 
             # Display Result
+            st.markdown("---")
+
+            # INTELLIGENT FALLBACK ROUTING (NEW: Show if it occurred)
+            fallback_triggered = result.get('fallback_tools_suggested')
+            empty_sources = result.get('empty_sources', [])
+            all_sources_empty = result.get('all_sources_empty', False)
+            answer_from_llm = result.get('answer_from_llm_knowledge', False)
+
+            if fallback_triggered or empty_sources or answer_from_llm:
+                st.markdown("### 🔀 Intelligent Fallback Routing")
+
+                if answer_from_llm:
+                    st.error("""
+                    **⚠️ All Data Sources Returned Empty Results**
+
+                    - **Status:** No data available from any source
+                    - **Action:** Answering from general AI knowledge with explicit disclaimer
+                    - **Empty Sources:** """ + f"{', '.join(empty_sources)}" + """
+
+                    ℹ️ The response includes a clear warning that it's based on general knowledge, NOT your project data.
+                    """)
+                elif fallback_triggered:
+                    st.info(f"""
+                    **🔄 Auto-Fallback Activated**
+
+                    - **Original Tools Returned Empty:** {', '.join(empty_sources)}
+                    - **Fallback Tools Tried:** {', '.join(fallback_triggered)}
+                    - **Result:** Agent automatically switched to alternative data source
+
+                    ℹ️ This demonstrates intelligent routing - when one source fails, the agent tries alternatives.
+                    """)
+                elif empty_sources:
+                    st.warning(f"""
+                    **⚠️ Some Sources Returned Empty**
+
+                    - **Empty Sources:** {', '.join(empty_sources)}
+                    - **Action:** Using data from remaining sources
+
+                    ℹ️ Partial data available - answer generated from available sources.
+                    """)
+
+                st.markdown("---")
+
+            # FEEDBACK LOOP DECISION (Show for EVERY query)
+            st.markdown("### 🔄 Feedback Loop Decision")
+            feedback_needed = result.get('feedback_needed', False)
+            retry_count = result.get('retry_count', 0)
+            confidence = result.get('confidence', 0)
+            retry_reason = result.get('retry_reason', 'N/A')
+
+            if retry_count > 0:
+                # Retry happened
+                retry_type = "🔀 **AUTO-FALLBACK**" if retry_reason == "empty_results_fallback" else "🔄 **STANDARD RETRY**"
+
+                st.warning(f"""
+                **Decision: RETRY TRIGGERED** {retry_type}
+
+                - **Attempts:** {retry_count} {'retry' if retry_count == 1 else 'retries'} performed
+                - **Reason:** {retry_reason}
+                - **Final Confidence:** {confidence:.2f}
+
+                The agent automatically retried with {"alternative tools" if retry_reason == "empty_results_fallback" else "different approach"} to improve answer quality.
+                """)
+            else:
+                # No retry - show why
+                if confidence >= 0.8:
+                    st.success(f"""
+                    **Decision: PROCEED (High Confidence)** ✅
+
+                    - **Confidence:** {confidence:.2f} ≥ 0.8 (HIGH threshold)
+                    - **Reasoning:** Strong confidence in data quality and tool outputs
+                    - **Action:** Proceeding directly to response generation
+                    """)
+                elif confidence >= 0.6:
+                    st.info(f"""
+                    **Decision: PROCEED (Medium Confidence)** ⚠️
+
+                    - **Confidence:** {confidence:.2f} (between 0.6-0.8)
+                    - **Reasoning:** Acceptable confidence with some uncertainty
+                    - **Action:** Proceeding with caveat in answer
+                    """)
+                else:
+                    st.warning(f"""
+                    **Decision: PROCEED (Low Confidence, Max Retries Reached)** 🛑
+
+                    - **Confidence:** {confidence:.2f} < 0.6 (LOW)
+                    - **Reasoning:** Max retries (2) already attempted
+                    - **Action:** Proceeding with best available data
+                    """)
+
             st.markdown("---")
             st.markdown("### 💡 Agent Response")
 
@@ -1445,7 +1638,7 @@ with tab_rag:
 
 
 # ============================================================================
-# TAB 5: SQL DATABASE
+# TAB 6: SQL DATABASE
 # ============================================================================
 
 with tab_sql:
@@ -1634,7 +1827,7 @@ with tab_sql:
 
 
 # ============================================================================
-# TAB 6: TESTS
+# TAB 7: TESTS
 # ============================================================================
 
 with tab_tests:
@@ -2116,7 +2309,7 @@ def display_demo_output_live(lines: List[str], output_placeholder):
 
 
 # ============================================================================
-# TAB 7: DEMOS (ENHANCED)
+# TAB 8: DEMOS (ENHANCED)
 # ============================================================================
 
 with tab_demos:
@@ -2231,6 +2424,122 @@ with tab_demos:
                     else:
                         status_placeholder.warning(f"⚠️ {demo_name} completed with warnings ({elapsed_time:.1f}s)")
 
+                    # Load demo executions into agent history for observability
+                    if demo_name == "Agent Demo":
+                        demo_results_file = project_root / "data" / "demo_executions.json"
+                        if demo_results_file.exists():
+                            try:
+                                with open(demo_results_file, 'r') as f:
+                                    demo_executions = json.load(f)
+
+                                # Add to agent history
+                                for execution in demo_executions:
+                                    st.session_state.agent_history.insert(0, execution)
+
+                                st.success(f"✅ Loaded {len(demo_executions)} agent executions into Observability tab")
+
+                                # Display comprehensive demo summary
+                                st.markdown("---")
+                                st.markdown("### 📊 Demo Execution Summary")
+                                st.markdown(f"**Total Queries Executed:** {len(demo_executions)}")
+
+                                # Create summary dataframe
+                                summary_data = []
+                                for idx, execution in enumerate(demo_executions, 1):
+                                    result = execution.get('result', {})
+                                    summary_data.append({
+                                        "#": idx,
+                                        "Query": execution.get('query', 'N/A')[:60] + "..." if len(execution.get('query', '')) > 60 else execution.get('query', 'N/A'),
+                                        "Intent": result.get('intent', 'N/A'),
+                                        "Confidence": f"{result.get('confidence', 0):.2f}",
+                                        "Tools Used": ", ".join(result.get('tools_executed', [])) if result.get('tools_executed') else "None",
+                                        "Duration (ms)": f"{result.get('total_duration_ms', 0):.0f}",
+                                        "Status": "✅ Success" if result.get('final_answer') and not result.get('tool_errors') else "⚠️ Warning"
+                                    })
+
+                                summary_df = pd.DataFrame(summary_data)
+                                st.dataframe(summary_df, use_container_width=True, hide_index=True)
+
+                                # Intent distribution
+                                st.markdown("#### 🎯 Intent Distribution")
+                                intent_counts = {}
+                                for execution in demo_executions:
+                                    intent = execution.get('result', {}).get('intent', 'unknown')
+                                    intent_counts[intent] = intent_counts.get(intent, 0) + 1
+
+                                col1, col2, col3 = st.columns(3)
+                                intent_items = list(intent_counts.items())
+                                for i, (intent, count) in enumerate(intent_items):
+                                    with [col1, col2, col3][i % 3]:
+                                        st.metric(intent.replace('_', ' ').title(), count)
+
+                                # Tool usage statistics
+                                st.markdown("#### 🔧 Tool Usage Statistics")
+                                tool_counts = {}
+                                for execution in demo_executions:
+                                    tools = execution.get('result', {}).get('tools_executed', [])
+                                    for tool in tools:
+                                        tool_counts[tool] = tool_counts.get(tool, 0) + 1
+
+                                if tool_counts:
+                                    tool_col1, tool_col2, tool_col3, tool_col4 = st.columns(4)
+                                    tool_items = list(tool_counts.items())
+                                    for i, (tool, count) in enumerate(tool_items):
+                                        with [tool_col1, tool_col2, tool_col3, tool_col4][i % 4]:
+                                            st.metric(tool, count)
+
+                                # Performance metrics
+                                st.markdown("#### ⚡ Performance Metrics")
+                                durations = [execution.get('result', {}).get('total_duration_ms', 0) for execution in demo_executions]
+                                confidences = [execution.get('result', {}).get('confidence', 0) for execution in demo_executions]
+
+                                perf_col1, perf_col2, perf_col3, perf_col4 = st.columns(4)
+                                with perf_col1:
+                                    avg_duration = sum(durations) / len(durations) if durations else 0
+                                    st.metric("Avg Duration", f"{avg_duration:.0f}ms")
+                                with perf_col2:
+                                    avg_confidence = sum(confidences) / len(confidences) if confidences else 0
+                                    st.metric("Avg Confidence", f"{avg_confidence:.2f}")
+                                with perf_col3:
+                                    max_duration = max(durations) if durations else 0
+                                    st.metric("Max Duration", f"{max_duration:.0f}ms")
+                                with perf_col4:
+                                    min_duration = min(durations) if durations else 0
+                                    st.metric("Min Duration", f"{min_duration:.0f}ms")
+
+                                # Expandable details for each query
+                                st.markdown("#### 🔍 Detailed Results")
+                                for idx, execution in enumerate(demo_executions, 1):
+                                    result = execution.get('result', {})
+                                    query = execution.get('query', 'N/A')
+                                    with st.expander(f"Query {idx}: {query[:80]}{'...' if len(query) > 80 else ''}"):
+                                        st.markdown(f"**Full Query:** {query}")
+                                        st.markdown(f"**Intent:** {result.get('intent', 'N/A')} (confidence: {result.get('confidence', 0):.2f})")
+                                        st.markdown(f"**Tools:** {', '.join(result.get('tools_executed', [])) or 'None'}")
+                                        st.markdown(f"**Duration:** {result.get('total_duration_ms', 0):.0f}ms")
+
+                                        # Show answer
+                                        answer = result.get('final_answer', 'No answer generated')
+                                        st.markdown("**Answer:**")
+                                        st.info(answer)
+
+                                        # Show findings if any
+                                        findings = result.get('findings', [])
+                                        if findings:
+                                            st.markdown(f"**Findings ({len(findings)}):**")
+                                            for finding in findings:
+                                                st.markdown(f"- {finding}")
+
+                                        # Show recommendations if any
+                                        recommendations = result.get('recommendations', [])
+                                        if recommendations:
+                                            st.markdown(f"**Recommendations ({len(recommendations)}):**")
+                                            for rec in recommendations:
+                                                st.markdown(f"- {rec}")
+
+                            except Exception as e:
+                                st.warning(f"Could not load demo executions: {e}")
+
                     # Display final metrics
                     with metrics_container:
                         st.markdown("### 📈 Execution Summary")
@@ -2337,7 +2646,7 @@ with tab_demos:
 
 
 # ============================================================================
-# TAB 8: WORKFLOW VISUALIZATION
+# TAB 9: WORKFLOW VISUALIZATION
 # ============================================================================
 
 with tab_workflow:
@@ -2498,7 +2807,7 @@ with tab_workflow:
 
 
 # ============================================================================
-# TAB 9: OBSERVABILITY
+# TAB 10: OBSERVABILITY
 # ============================================================================
 
 with tab_observability:

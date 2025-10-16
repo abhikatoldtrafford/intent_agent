@@ -10,7 +10,7 @@
 
 ## 🎥 Video Demonstration
 
-📹 **[https://youtu.be/vD4zDR47uAs]**
+📹 **[Watch the Full Demo on YouTube](https://youtu.be/rCsbiqlGTbA)**
 
 See the agent in action: intent classification, tool selection, workflow execution, and complete tracing.
 

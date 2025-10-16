@@ -22,11 +22,16 @@ import sys
 from pathlib import Path
 from datetime import datetime
 import time
+import json
 
 # Add parent directory to path for imports
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from agent import run_agent, get_graph_visualization
+
+# Track all agent executions for observability
+DEMO_EXECUTIONS = []
+DEMO_RESULTS_FILE = Path(__file__).parent.parent / "data" / "demo_executions.json"
 
 
 def log(message: str, level: str = "INFO"):
@@ -189,6 +194,13 @@ def run_demo_query(query: str, description: str = "", section: str = ""):
             consistency = data_quality.get('consistency', 0)
             log(f"Data quality: completeness={completeness:.0%}, consistency={consistency:.0%}", "INFO")
 
+        # Save execution for observability
+        DEMO_EXECUTIONS.append({
+            "query": query,
+            "result": result,
+            "timestamp": datetime.now().isoformat()
+        })
+
         return True
 
     except Exception as e:
@@ -313,6 +325,38 @@ def main():
         if run_demo_query(query, desc):
             success_count += 1
         time.sleep(0.5)
+
+    # 6. Complex Multi-Source Queries (NEW SECTION)
+    print_header("SECTION 6: COMPLEX MULTI-SOURCE QUERIES")
+    log("Testing advanced query patterns with intelligent routing", "INFO")
+
+    queries = [
+        ("Show me services where CPU exceeded 75% in the last 4 days and rank by frequency",
+         "Complex historical query - SQL database with filtering and aggregation"),
+        ("Compare current throughput across all services and recommend optimization strategies",
+         "Complex mixed query - current metrics + knowledge base recommendations"),
+        ("What percentage of requests for payment-service resulted in errors over the past week?",
+         "Complex calculation query - historical data + percentage computation"),
+        ("Identify services with degraded status patterns in the last 72 hours and explain common causes",
+         "Complex diagnostic query - historical analysis + troubleshooting knowledge"),
+        ("Show correlation between memory spikes and error rates for business-logic service",
+         "Complex analysis query - multi-metric correlation from historical data"),
+    ]
+
+    for query, desc in queries:
+        total_count += 1
+        if run_demo_query(query, desc):
+            success_count += 1
+        time.sleep(0.5)
+
+    # Save demo executions for observability
+    try:
+        DEMO_RESULTS_FILE.parent.mkdir(parents=True, exist_ok=True)
+        with open(DEMO_RESULTS_FILE, 'w') as f:
+            json.dump(DEMO_EXECUTIONS, f, indent=2, default=str)
+        log(f"✓ Saved {len(DEMO_EXECUTIONS)} executions to {DEMO_RESULTS_FILE}", "SUCCESS")
+    except Exception as e:
+        log(f"Warning: Could not save demo executions: {e}", "WARNING")
 
     # Final Summary
     print_header("DEMO COMPLETE")

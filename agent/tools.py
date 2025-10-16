@@ -377,15 +377,29 @@ def calculate(expression: str) -> Dict[str, Any]:
             "__builtins__": {}
         }
 
-        # Validate expression - only allow safe characters
-        allowed_pattern = r'^[0-9+\-*/%().,\s<>=!]+$|^(abs|min|max|round|sum|len)\([0-9+\-*/%().,\s]+\)$'
+        # Validate expression - only allow safe characters and functions
+        # Pattern allows: numbers, operators, parentheses, comparisons, and safe functions
+        allowed_pattern = r'^[\d\s+\-*/%().,<>=!]+$|^(abs|min|max|round|sum|len)\([\d\s+\-*/%().,<>=!]+\)$'
 
-        if not re.match(r'^[\w\s+\-*/%().,<>=!]+$', expression):
-            return {
-                "error": "Invalid characters in expression",
-                "expression": expression,
-                "allowed": "Numbers, operators (+,-,*,/,**,%,<,>,<=,>=,==,!=), and functions (abs,min,max,round)"
-            }
+        # Check if expression contains function calls
+        has_function = any(func in expression for func in ['abs', 'min', 'max', 'round', 'sum', 'len'])
+
+        if has_function:
+            # More lenient validation for function calls
+            if not re.match(r'^[a-z]+\([\d\s+\-*/%().,<>=!]+\)$', expression):
+                return {
+                    "error": "Invalid function syntax",
+                    "expression": expression,
+                    "allowed": "Functions: abs(x), min(x,y,...), max(x,y,...), round(x), sum([x,y,...]), len([x,y,...])"
+                }
+        else:
+            # Strict validation for non-function expressions
+            if not re.match(r'^[\d\s+\-*/%().,<>=!]+$', expression):
+                return {
+                    "error": "Invalid characters in expression",
+                    "expression": expression,
+                    "allowed": "Numbers, operators (+,-,*,/,**,%,<,>,<=,>=,==,!=), and parentheses"
+                }
 
         # Check for dangerous patterns
         dangerous = ["import", "exec", "eval", "compile", "__", "open", "file"]
