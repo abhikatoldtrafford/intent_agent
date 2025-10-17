@@ -118,77 +118,65 @@ def get_langsmith_traces() -> List[Dict[str, Any]]:
 
 def fetch_langsmith_traces() -> Optional[List[Dict[str, Any]]]:
     """
-    Fetch traces from LangSmith API.
+    Fetch traces from LangSmith using Python SDK.
 
-    Uses LangSmith REST API to retrieve recent traces for the project.
+    Uses LangSmith Python SDK to retrieve recent traces for the project.
     """
-    api_key = os.getenv("LANGSMITH_API_KEY")
-    project_name = os.getenv("LANGSMITH_PROJECT", "intent-agent-poc")
+    api_key = os.getenv("LANGSMITH_API_KEY") or os.getenv("LANGCHAIN_API_KEY")
+    project_name = os.getenv("LANGSMITH_PROJECT") or os.getenv("LANGCHAIN_PROJECT", "intent-agent-poc")
 
     if not api_key:
         logger.warning("LANGSMITH_API_KEY not set - cannot fetch traces")
         return None
 
     try:
-        import requests
+        # Use LangSmith SDK instead of REST API (more reliable)
+        from langsmith import Client
 
-        # LangSmith API endpoint
-        base_url = "https://api.smith.langchain.com"
+        client = Client(api_key=api_key)
 
-        headers = {
-            "x-api-key": api_key,
-            "Content-Type": "application/json"
-        }
-
-        # Get runs for the project (last 24 hours) - using POST /runs/query
-        runs_url = f"{base_url}/runs/query"
-
-        # LangSmith API requires a filter string to specify project
-        # Using filter syntax: eq(project, "project-name")
-        start_time = (datetime.now() - timedelta(hours=24)).isoformat()
-
-        query_body = {
-            "filter": f'eq(session_name, "{project_name}")',
-            "limit": 100,
-            "start_time": start_time,
-            "is_root": True  # Only get root runs (not sub-runs)
-        }
+        # Get runs from last 24 hours
+        start_time = datetime.now() - timedelta(hours=24)
 
         logger.info(f"Fetching LangSmith traces for project: {project_name}")
-        response = requests.post(runs_url, headers=headers, json=query_body, timeout=10)
 
-        if response.status_code == 200:
-            response_data = response.json()
-            runs = response_data.get("runs", [])
-            logger.info(f"Fetched {len(runs)} traces from LangSmith API")
+        # List runs using SDK
+        runs = list(client.list_runs(
+            project_name=project_name,
+            start_time=start_time,
+            is_root=True,  # Only root runs
+            limit=100
+        ))
 
-            # Transform to our format
-            traces = []
-            for run in runs:
-                trace = {
-                    "id": run.get("id"),
-                    "name": run.get("name"),
-                    "run_type": run.get("run_type"),
-                    "start_time": run.get("start_time"),
-                    "end_time": run.get("end_time"),
-                    "status": run.get("status"),
-                    "inputs": run.get("inputs", {}),
-                    "outputs": run.get("outputs", {}),
-                    "error": run.get("error"),
-                    "trace_id": run.get("trace_id"),
-                    "parent_run_id": run.get("parent_run_id"),
-                    "execution_order": run.get("execution_order"),
-                    "session_id": run.get("session_id"),
-                    "url": f"https://smith.langchain.com/public/{run.get('id')}/r",
-                    "fetched_at": datetime.now().isoformat()
-                }
-                traces.append(trace)
+        logger.info(f"Fetched {len(runs)} traces from LangSmith")
 
-            return traces
-        else:
-            logger.error(f"LangSmith API error: {response.status_code} - {response.text}")
-            return None
+        # Transform to our format
+        traces = []
+        for run in runs:
+            trace = {
+                "id": str(run.id),
+                "name": run.name,
+                "run_type": run.run_type,
+                "start_time": run.start_time.isoformat() if run.start_time else None,
+                "end_time": run.end_time.isoformat() if run.end_time else None,
+                "status": run.status if hasattr(run, 'status') else None,
+                "inputs": run.inputs or {},
+                "outputs": run.outputs or {},
+                "error": run.error,
+                "trace_id": str(run.trace_id) if run.trace_id else None,
+                "parent_run_id": str(run.parent_run_id) if run.parent_run_id else None,
+                "execution_order": run.execution_order if hasattr(run, 'execution_order') else None,
+                "session_id": str(run.session_id) if hasattr(run, 'session_id') else None,
+                "url": run.url if hasattr(run, 'url') else f"https://smith.langchain.com/o/{run.id}/r",
+                "fetched_at": datetime.now().isoformat()
+            }
+            traces.append(trace)
 
+        return traces
+
+    except ImportError:
+        logger.error("langsmith package not installed - run: pip install langsmith")
+        return None
     except Exception as e:
         logger.error(f"Error fetching LangSmith traces: {e}")
         return None
