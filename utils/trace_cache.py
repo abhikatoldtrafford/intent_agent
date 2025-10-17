@@ -140,19 +140,19 @@ def fetch_langsmith_traces() -> Optional[List[Dict[str, Any]]]:
             "Content-Type": "application/json"
         }
 
-        # Get runs for the project (last 24 hours)
-        runs_url = f"{base_url}/runs"
-        params = {
-            "project": project_name,
-            "limit": 100,
-            "offset": 0
+        # Get runs for the project (last 24 hours) - using POST /runs/query
+        runs_url = f"{base_url}/runs/query"
+        query_body = {
+            "project": [project_name],
+            "limit": 100
         }
 
         logger.info(f"Fetching LangSmith traces for project: {project_name}")
-        response = requests.get(runs_url, headers=headers, params=params, timeout=10)
+        response = requests.post(runs_url, headers=headers, json=query_body, timeout=10)
 
         if response.status_code == 200:
-            runs = response.json()
+            response_data = response.json()
+            runs = response_data.get("runs", [])
             logger.info(f"Fetched {len(runs)} traces from LangSmith API")
 
             # Transform to our format
