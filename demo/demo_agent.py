@@ -349,6 +349,35 @@ def main():
             success_count += 1
         time.sleep(0.5)
 
+    # 7. Orchestration & Feedback Loop Demonstrations
+    print_header("SECTION 7: ORCHESTRATION & FEEDBACK LOOP DEMONSTRATIONS 🎯")
+    log("Showcasing intelligent orchestration and adaptive retry mechanisms", "INFO")
+    log("These features demonstrate production-ready agent capabilities", "INFO")
+
+    queries = [
+        ("What's the weather like today?",
+         "Off-topic detection - should skip all tools and return friendly guidance (no wasted API calls)"),
+        ("Hello! How are you doing?",
+         "Greeting detection - unknown intent should trigger off-topic handler (demonstrates cost optimization)"),
+        ("Show me CPU usage for api-gateway",
+         "Smart routing - CPU only in database, should skip API call (demonstrates context-aware tool selection)"),
+        ("What is the latency for api-gateway in the last 6 hours?",
+         "Intelligent fallback routing - if API has limited historical data, should try SQL database as fallback"),
+        ("Show me metrics for nonexistent-service-xyz",
+         "Retry loop demonstration - should trigger fallback mechanism when service not found"),
+        ("What's the current error rate and how do I reduce it?",
+         "Multi-tool coordination - metrics + knowledge (demonstrates orchestration of complementary tools)"),
+    ]
+
+    for query, desc in queries:
+        total_count += 1
+        if run_demo_query(query, desc):
+            success_count += 1
+        time.sleep(0.5)
+
+    log("✓ Orchestration demonstration complete", "SUCCESS")
+    log("Review orchestration_log and feedback_iterations in saved results", "INFO")
+
     # Save demo executions for observability
     try:
         DEMO_RESULTS_FILE.parent.mkdir(parents=True, exist_ok=True)
@@ -371,6 +400,13 @@ def main():
     print("  • Inference and threshold checking")
     print("  • Confidence scoring and feedback loop")
     print("  • Complete execution trace")
+    print("\n🎯 Orchestration Features:")
+    print("  • Intelligent fallback routing (API ↔ SQL database)")
+    print("  • Off-topic query detection (saves API costs)")
+    print("  • Context-aware tool selection (prevents failures)")
+    print("  • Adaptive retry mechanism (up to 2 retries)")
+    print("  • Complete orchestration logging (WHY decisions were made)")
+    print("  • Feedback iteration tracking (retry reasoning + alternatives)")
 
     print("\n🔧 Tools Tested:")
     print("  • REST API tool (real-time metrics)")

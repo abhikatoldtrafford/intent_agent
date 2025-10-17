@@ -51,6 +51,11 @@ class AgentState(TypedDict, total=False):
         retry_reason: Reason for retry (if applicable)
         clarification_question: Question to ask user (if needed)
 
+        # Orchestration (for visibility into decision-making)
+        orchestration_log: List of orchestration decisions with reasoning
+        feedback_iterations: History of feedback loop iterations
+        off_topic_query: Flag indicating query is unrelated to agent capabilities
+
         # Response
         final_answer: The final formatted answer to the user
         answer_format: Format of the answer (text, markdown, structured)
@@ -102,6 +107,11 @@ class AgentState(TypedDict, total=False):
     retry_reason: Optional[str]
     clarification_question: Optional[str]
 
+    # Orchestration
+    orchestration_log: List[Dict[str, Any]]
+    feedback_iterations: List[Dict[str, Any]]
+    off_topic_query: bool
+
     # Response
     final_answer: str
     answer_format: str
@@ -124,7 +134,7 @@ INTENT_METRICS_LOOKUP = "metrics_lookup"          # Query real-time or historica
 INTENT_KNOWLEDGE_LOOKUP = "knowledge_lookup"      # Search documentation
 INTENT_CALCULATION = "calculation"                # Perform calculations/comparisons
 INTENT_MIXED = "mixed"                           # Requires multiple tool types
-INTENT_CLARIFICATION = "clarification"           # Need more info from user
+INTENT_CLARIFICATION = "clarify"                 # Need more info from user
 INTENT_UNKNOWN = "unknown"                       # Cannot determine intent
 
 VALID_INTENTS = [
@@ -212,6 +222,11 @@ def create_initial_state(query: str, session_id: Optional[str] = None) -> AgentS
         retry_count=0,
         retry_reason=None,
         clarification_question=None,
+
+        # Orchestration
+        orchestration_log=[],
+        feedback_iterations=[],
+        off_topic_query=False,
 
         # Response
         final_answer="",

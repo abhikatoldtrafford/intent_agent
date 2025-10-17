@@ -52,6 +52,16 @@ try:
     )
     from services.rag_service import RAGService
     from services.db_service import DatabaseService
+    from utils.trace_cache import (
+        get_all_cached_traces,
+        get_langsmith_traces,
+        get_agent_executions,
+        refresh_langsmith_cache,
+        get_cache_status,
+        clear_cache,
+        auto_populate_traces,
+        cache_agent_execution
+    )
 except ImportError as e:
     st.error(f"Import Error: {e}")
     st.error("Make sure you're running from the project root directory")
@@ -144,6 +154,21 @@ if 'agent_history' not in st.session_state:
     st.session_state.agent_history = []
 if 'test_results' not in st.session_state:
     st.session_state.test_results = None
+if 'traces_auto_populated' not in st.session_state:
+    st.session_state.traces_auto_populated = False
+
+# Auto-populate traces from cache on first load
+if not st.session_state.traces_auto_populated:
+    try:
+        summary = auto_populate_traces()
+        # Load agent executions into history
+        agent_execs = get_agent_executions()
+        if agent_execs:
+            st.session_state.agent_history = agent_execs
+        st.session_state.traces_auto_populated = True
+        st.session_state.trace_load_summary = summary
+    except Exception as e:
+        st.session_state.trace_load_summary = {"error": str(e), "total": 0}
 
 
 # ============================================================================
@@ -295,9 +320,10 @@ with st.sidebar:
 # MAIN CONTENT - TABS
 # ============================================================================
 
-tab_home, tab_docs, tab_agent, tab_rag, tab_sql, tab_tests, tab_demos, tab_workflow, tab_observability = st.tabs([
+tab_home, tab_docs, tab_api, tab_agent, tab_rag, tab_sql, tab_tests, tab_demos, tab_workflow, tab_observability = st.tabs([
     "🏠 Home",
     "📚 Documentation",
+    "🌐 API Testing",
     "🤖 Agent Testing",
     "🔍 RAG Service",
     "💾 SQL Database",
@@ -438,31 +464,43 @@ with tab_docs:
         ### 🎯 Intent-Routed Agent POC
 
         A sophisticated AI agent system that demonstrates intent classification,
-        tool routing, workflow orchestration, and intelligent inference.
+        tool routing, workflow orchestration, and intelligent inference with
+        enterprise-grade observability.
 
         #### Key Features
 
-        **Intent Classification**
+        **Intent Classification with Enhanced Guardrails**
         - 6 intent types: metrics_lookup, knowledge_lookup, calculation, mixed, clarification, unknown
-        - OpenAI GPT-4o-mini for classification
+        - OpenAI GPT-4.1-mini (latest, fastest model) for classification
+        - Enhanced guardrails: "MAKE REASONABLE DEFAULTS - DON'T BE PEDANTIC"
+        - 5 comprehensive classification examples
         - Confidence scoring with thresholds
 
-        **Tool Routing**
+        **Intelligent Tool Routing**
         - REST API tool for real-time metrics
-        - Knowledge RAG for documentation search
-        - SQL Database for historical data
-        - Calculator for computations
+        - Knowledge RAG for documentation search (FAISS + BM25 hybrid)
+        - SQL Database for historical data with NL-to-SQL
+        - Calculator for safe mathematical computations
+        - Context-aware tool selection (e.g., CPU/memory → SQL only)
 
         **Workflow Orchestration**
         - 7-node LangGraph state machine
+        - Intelligent fallback routing (API empty → SQL, SQL empty → API)
         - Conditional edges based on confidence
         - Feedback loop with max 2 retries
+        - Complete orchestration decision logging
 
         **Intelligent Inference**
         - Threshold checks (latency, error rates)
-        - Service comparisons
-        - Trend analysis
+        - Service comparisons and trend analysis
         - Recommendations generation
+
+        **Observability & Tracing**
+        - 24-hour trace caching across sessions
+        - LangSmith API integration with real-time fetching
+        - Enhanced test visibility with detailed execution traces
+        - Interactive API testing tab with prefilled parameters
+        - Complete trace display utilities
         """)
 
     elif doc_section == "Installation":
@@ -495,15 +533,10 @@ with tab_docs:
         OPENAI_API_KEY=sk-...
         ```
 
-        #### Step 4: Initialize Services
+        #### Step 4: Start Services
         ```bash
-        # Initialize RAG (one-time)
-        python demo/demo_rag.py
-
-        # Create database (one-time)
-        python test/validate_db_service.py
-
-        # Start API server (keep running)
+        # Single command to start API server
+        # (automatically initializes RAG on first run)
         python start_api_server.py
         ```
 
@@ -512,8 +545,20 @@ with tab_docs:
         # Interactive CLI
         python main.py
 
-        # Streamlit UI
+        # Streamlit UI (10 tabs: Home, Docs, API Testing, Agent Testing, etc.)
         streamlit run streamlit_app.py
+        ```
+
+        #### Step 6: Run Tests (Optional)
+        ```bash
+        # Run all tests (41+ tests across 13 test files)
+        python test/test_individual_tools.py
+        python test/test_feedback_loop.py
+        python test/test_trace_cache.py
+        python test/test_api_endpoints.py
+
+        # Control trace display
+        SHOW_TRACES=true python test/test_feedback_loop.py
         ```
         """)
 
@@ -579,7 +624,10 @@ with tab_docs:
         **Purpose:** Classify user query into intent type
 
         **Process:**
-        - Uses OpenAI GPT-4o-mini
+        - Uses OpenAI GPT-4.1-mini (latest, fastest model)
+        - Enhanced guardrails: "MAKE REASONABLE DEFAULTS - DON'T BE PEDANTIC"
+        - 5 comprehensive classification examples
+        - Clear distinction: clarify (in-domain but vague) vs unknown (out-of-distribution)
         - Analyzes query semantics
         - Returns intent + confidence
 
@@ -590,18 +638,21 @@ with tab_docs:
         ---
 
         #### Node 2: select_tools
-        **Purpose:** Map intent to appropriate tools
+        **Purpose:** Map intent to appropriate tools with intelligent orchestration
 
-        **Logic:**
-        - metrics_lookup → REST API tool
-        - knowledge_lookup → RAG tool
+        **Enhanced Logic:**
+        - metrics_lookup → REST API tool (current data)
+        - knowledge_lookup → RAG tool (documentation)
         - calculation → Calculator tool
         - mixed → Multiple tools
         - Historical keywords → SQL tool
+        - **Context-aware:** CPU/memory queries → SQL only (not in API)
+        - **Orchestration logging:** All decisions logged with reasoning
 
         **Outputs:**
         - tools_to_use: List[str]
         - tool_selection_reasoning: str
+        - orchestration_log: List[Dict]
 
         ---
 
@@ -612,6 +663,7 @@ with tab_docs:
         - Parallel execution where possible
         - Error handling per tool
         - Parameter extraction from query
+        - Timeout protection
 
         **Outputs:**
         - tool_outputs: Dict[tool_name, result]
@@ -621,16 +673,22 @@ with tab_docs:
         ---
 
         #### Node 4: aggregate_results
-        **Purpose:** Combine outputs from multiple tools
+        **Purpose:** Combine outputs from multiple tools with intelligent fallback
 
-        **Quality Checks:**
-        - Completeness (data availability)
-        - Consistency (cross-tool validation)
-        - Relevance (query alignment)
+        **Enhanced Features:**
+        - **Intelligent fallback routing:**
+          - API returns empty → suggest trying SQL
+          - SQL returns empty → suggest trying API
+        - **Quality Checks:**
+          - Completeness (data availability)
+          - Consistency (cross-tool validation)
+          - Relevance (query alignment)
+        - **Suggests alternative tools for retry**
 
         **Outputs:**
         - aggregated_data: Dict[str, Any]
         - data_quality: Dict[str, float]
+        - orchestration_log: Updated with fallback decisions
 
         ---
 
@@ -657,26 +715,33 @@ with tab_docs:
         - confidence >= 0.8 → Proceed (HIGH)
         - confidence >= 0.6 → Proceed (MEDIUM)
         - confidence < 0.6 → Retry or clarify (LOW)
-        - Max retries: 2
+        - Max retries: 2 (prevents infinite loops)
 
         **Outputs:**
         - feedback_needed: bool
         - retry_reason: Optional[str]
+        - feedback_iterations: List[Dict] (tracks all retry attempts)
 
         ---
 
         #### Node 7: format_response
-        **Purpose:** Create final answer with trace
+        **Purpose:** Create final answer with complete trace
 
         **Format:**
         - Markdown-formatted answer
         - Findings and recommendations
         - Metadata (intent, confidence, duration)
-        - Complete execution trace
+        - Complete execution trace with:
+          - All node events with timestamps
+          - Orchestration decisions with reasoning
+          - Feedback iterations with retry reasons
+          - Tool calls and responses
+          - Node durations
 
         **Outputs:**
         - final_answer: str
         - total_duration_ms: float
+        - trace: List[Dict] (complete execution history)
         """)
 
     elif doc_section == "Tools":
@@ -876,6 +941,41 @@ with tab_docs:
         MAX_RETRIES=2
         CONFIDENCE_HIGH=0.8
         CONFIDENCE_MEDIUM=0.6
+
+        # Optional - Test Configuration
+        SHOW_TRACES=true  # Show detailed execution traces in test output
+        ```
+
+        ---
+
+        #### Trace Caching Configuration
+
+        Trace caching is automatically enabled with default settings:
+        - **Cache Lifetime:** 24 hours (auto-expiry)
+        - **Cache Location:** `data/trace_cache/` (auto-created)
+        - **Auto-Population:** Enabled on Streamlit startup
+        - **Sources:** LangSmith API, agent executions, demos, tests
+
+        **Manual Operations:**
+        ```python
+        from utils.trace_cache import (
+            get_cache_status,       # Check cache status
+            refresh_langsmith_cache, # Force refresh from API
+            clear_cache,            # Clear all or specific cache
+            auto_populate_traces    # Manually trigger auto-population
+        )
+
+        # Check cache status
+        status = get_cache_status()
+
+        # Refresh LangSmith traces
+        refresh_langsmith_cache()
+
+        # Clear specific cache
+        clear_cache("langsmith")  # or "agent", "demo", "test"
+
+        # Clear all caches
+        clear_cache()
         ```
 
         ---
@@ -1051,33 +1151,111 @@ with tab_agent:
     # Query Input
     st.markdown("### 📝 Enter Query")
 
+    # Add helpful info about feedback loop queries
+    with st.expander("💡 Understanding Feedback Loop Queries", expanded=False):
+        st.markdown("""
+        **The agent has 4 types of feedback mechanisms:**
+
+        1. **🔄 Empty Results → Retry with Different Tool**
+           - Initial tool returns empty data
+           - Agent automatically suggests alternative tool
+           - Example: API fails → Try SQL database
+
+        2. **🤖 Unknown Intent → LLM Fallback**
+           - Query is out-of-domain (weather, jokes, greetings)
+           - No specialized tools can help
+           - Agent uses general AI knowledge with disclaimer
+           - **This counts as feedback** (adaptive strategy)
+
+        3. **❓ Clarification → Ask User**
+           - Query is in-domain but missing parameters
+           - Example: "Show me latency" (which service?)
+           - Agent asks for clarification
+           - **This counts as feedback** (interactive loop)
+
+        4. **⚠️ Low Confidence → Retry**
+           - Answer confidence below threshold
+           - Agent tries different tool combination
+           - Up to 2 retries maximum
+
+        **All of these are logged in `feedback_iterations` array for transparency!**
+        """)
+
     query_examples = [
-        # Simple queries (good for first-time demos)
+        # ═══════════════════════════════════════════════════════════════
+        # 1. SIMPLE METRICS QUERIES (Basic Tool Usage)
+        # ═══════════════════════════════════════════════════════════════
+        "--- ✅ Simple Metrics Queries (Good Starting Point) ---",
         "What is the current latency for api-gateway?",
-        "How do I configure API rate limiting?",
-        "Calculate the average of 150, 200, and 250",
+        "Show me error rates for auth-service",
         "Is business-logic service healthy?",
+        "What's the throughput for payment-service?",
 
-        # Complex queries (showcase intelligent routing)
-        "--- Complex Multi-Source Queries ---",
-        "Show me all services where CPU usage exceeded 80% in the last 3 days and rank them by severity",
-        "Compare current error rates across all services and identify which one needs immediate attention",
-        "What are the deployment best practices and show me if our current services follow them based on health metrics",
+        # ═══════════════════════════════════════════════════════════════
+        # 2. KNOWLEDGE BASE QUERIES (RAG Search)
+        # ═══════════════════════════════════════════════════════════════
+        "--- 📚 Knowledge Base & Documentation ---",
+        "How do I configure API rate limiting?",
+        "What are the best practices for deployment?",
+        "How do I troubleshoot high error rates?",
+        "Explain the system architecture",
+
+        # ═══════════════════════════════════════════════════════════════
+        # 3. HISTORICAL DATA QUERIES (SQL Database)
+        # ═══════════════════════════════════════════════════════════════
+        "--- 📊 Historical Data & Trends ---",
+        "What was the average CPU usage for api-gateway over the past week?",
+        "Compare memory usage between api-gateway and auth-service",
+        "Show me error patterns for payment-service in the last 48 hours",
+        "Which services had degraded status most frequently in the past 3 days?",
+
+        # ═══════════════════════════════════════════════════════════════
+        # 4. CALCULATIONS (Calculator Tool)
+        # ═══════════════════════════════════════════════════════════════
+        "--- 🧮 Calculations & Comparisons ---",
+        "Calculate the average of 150, 200, and 250",
+        "If latency is 95ms and threshold is 100ms, is it within limits?",
+        "What percentage of 1000 requests is 45 errors?",
+
+        # ═══════════════════════════════════════════════════════════════
+        # 5. MIXED QUERIES (Multiple Tools)
+        # ═══════════════════════════════════════════════════════════════
+        "--- 🔀 Mixed Queries (Orchestration) ---",
+        "What is the latency for api-gateway and how can I improve it?",
+        "Show me error rates and explain how to reduce them",
+        "Compare CPU usage across services and recommend optimization strategies",
+
+        # ═══════════════════════════════════════════════════════════════
+        # 6. FEEDBACK LOOP: UNKNOWN INTENT (Out-of-Domain)
+        # ═══════════════════════════════════════════════════════════════
+        "--- 🤖 Unknown Intent → LLM Fallback (Feedback Loop) ---",
+        "What's the weather like today?",
+        "Hello! How are you?",
+        "Tell me a joke",
+
+        # ═══════════════════════════════════════════════════════════════
+        # 7. FEEDBACK LOOP: CLARIFICATION REQUIRED (In-Domain but Vague)
+        # ═══════════════════════════════════════════════════════════════
+        "--- ❓ Clarification Required (Feedback Loop) ---",
+        "Show me the latency",
+        "What's the error rate?",
+        "Check the CPU usage",
+        "Tell me about the metrics",
+
+        # ═══════════════════════════════════════════════════════════════
+        # 8. FEEDBACK LOOP: RETRY MECHANISM (Empty Results)
+        # ═══════════════════════════════════════════════════════════════
+        "--- 🔄 Retry & Fallback (Feedback Loop) ---",
+        "Show me metrics for nonexistent-service-xyz",
+        "What is the latency for fake-service-12345?",
+
+        # ═══════════════════════════════════════════════════════════════
+        # 9. ADVANCED QUERIES (Complex Analysis)
+        # ═══════════════════════════════════════════════════════════════
+        "--- 🚀 Advanced Multi-Source Queries ---",
+        "Show me all services where CPU exceeded 80% in the last 72 hours and rank by severity",
         "Calculate the percentage increase in latency for data-processor between last week and now",
-        "Show me historical memory trends for auth-service over 7 days and explain what might cause spikes",
-
-        # Edge cases
-        "--- Queries Testing Edge Cases ---",
-        "Which service had degraded status most frequently in the past 48 hours?",
-        "Show me error patterns during business hours vs off-hours for payment-service",
-        "What is the correlation between high CPU and error rates in business-logic service?",
-        "Explain troubleshooting steps and show me current metrics that need troubleshooting",
-
-        # Retry triggers (if API is down or vague)
-        "--- Queries That May Trigger Feedback Loop ---",
-        "Show me metrics for all services",
-        "stuff about things",  # Intentionally vague
-        "Tell me about performance"  # Ambiguous
+        "Show correlation between high CPU and error rates in business-logic service",
     ]
 
     selected_example = st.selectbox(
@@ -1319,6 +1497,49 @@ with tab_agent:
             # Display Result
             st.markdown("---")
 
+            # ═══════════════════════════════════════════════════════════════════
+            # ORCHESTRATION & FEEDBACK SUMMARY (ALWAYS VISIBLE - TOP OF RESULTS)
+            # ═══════════════════════════════════════════════════════════════════
+            st.markdown("### 🎯 Orchestration & Feedback Loop Summary")
+
+            summary_col1, summary_col2, summary_col3 = st.columns(3)
+
+            with summary_col1:
+                orch_count = len(result.get('orchestration_log', []))
+                st.metric("Orchestration Decisions", orch_count,
+                         help="Number of tool selection decisions made")
+
+            with summary_col2:
+                retry_count = result.get('retry_count', 0)
+                feedback_iter_count = len(result.get('feedback_iterations', []))
+                st.metric("Feedback Loop Iterations", feedback_iter_count,
+                         help="Number of adaptive retry attempts")
+
+            with summary_col3:
+                if retry_count == 0:
+                    st.success("✅ First Attempt Success")
+                elif retry_count == 1:
+                    st.warning(f"🔄 1 Retry Needed")
+                else:
+                    st.error(f"🔄 {retry_count} Retries Needed")
+
+            # Quick orchestration summary
+            if result.get('orchestration_log'):
+                orch_tools = []
+                for decision in result['orchestration_log']:
+                    decision_text = decision.get('decision', '')
+                    # Extract tool names from decision text
+                    if 'Selected' in decision_text and ':' in decision_text:
+                        tools_part = decision_text.split(':')[-1].strip()
+                        orch_tools.extend([t.strip() for t in tools_part.split(',')])
+
+                if orch_tools:
+                    st.caption(f"🛠️ Tools orchestrated: {', '.join(set(orch_tools))}")
+                else:
+                    st.caption(f"🛠️ No tools selected (clarification or off-topic query)")
+
+            st.markdown("---")
+
             # INTELLIGENT FALLBACK ROUTING (NEW: Show if it occurred)
             fallback_triggered = result.get('fallback_tools_suggested')
             empty_sources = result.get('empty_sources', [])
@@ -1423,9 +1644,158 @@ with tab_agent:
             with col4:
                 st.metric("Tools Used", len(result.get('tools_executed', [])))
 
-            # Answer
+            # ═══════════════════════════════════════════════════════════════════
+            # ORCHESTRATION & FEEDBACK LOOPS
+            # ═══════════════════════════════════════════════════════════════════
+
+            # Orchestration Decision Log
+            st.markdown("---")
+            st.markdown("### 🎯 Orchestration Decisions")
+            st.info("**Production Value**: This shows WHY each tool was selected and demonstrates intelligent routing")
+
+            if result.get('orchestration_log'):
+
+                for i, decision in enumerate(result['orchestration_log'], 1):
+                    stage = decision.get('stage', 'unknown')
+                    intent = decision.get('intent', 'unknown')
+                    decision_text = decision.get('decision', 'N/A')
+                    reasoning = decision.get('reasoning', 'No reasoning provided')
+                    retry_iteration = decision.get('retry_iteration', 0)
+                    timestamp = decision.get('timestamp', 'N/A')
+
+                    # Color code by retry iteration
+                    if retry_iteration == 0:
+                        badge_color = "🟢"
+                        badge_text = "Initial Attempt"
+                        container_type = "success"
+                    elif retry_iteration == 1:
+                        badge_color = "🟡"
+                        badge_text = "First Retry"
+                        container_type = "warning"
+                    else:
+                        badge_color = "🔴"
+                        badge_text = "Second Retry"
+                        container_type = "error"
+
+                    # Use colored container for visibility
+                    with st.container():
+                        st.markdown(f"**{badge_color} Decision {i}: {badge_text}**")
+                        col1, col2 = st.columns([1, 3])
+                        with col1:
+                            st.markdown(f"**Stage:** `{stage}`")
+                            st.markdown(f"**Intent:** `{intent}`")
+                            st.markdown(f"**Iteration:** `{retry_iteration}`")
+                        with col2:
+                            st.markdown(f"**Decision:** {decision_text}")
+                            st.markdown(f"**Reasoning:** {reasoning}")
+                        st.caption(f"⏰ {timestamp[:19] if len(timestamp) > 19 else timestamp}")
+                        st.markdown("---")
+            else:
+                st.warning("⚠️ No orchestration log available. This may indicate an error during agent execution.")
+
+            # Feedback Loop Iterations
+            st.markdown("### 🔁 Feedback Loop Iterations")
+            st.info("**Production Value**: This demonstrates adaptive retry with intelligent fallback routing")
+
+            if result.get('feedback_iterations'):
+
+                for i, iteration in enumerate(result['feedback_iterations'], 1):
+                    iter_num = iteration.get('iteration', i)
+                    reason = iteration.get('reason', 'unknown')
+                    confidence = iteration.get('confidence_at_retry', 0)
+                    fallback_tools = iteration.get('fallback_tools', [])
+                    timestamp = iteration.get('timestamp', 'N/A')
+
+                    # Format reason for display
+                    reason_display = {
+                        'empty_results_fallback': '🔄 Empty Results - Trying Alternative Tool',
+                        'tool_failures': '⚠️ Tool Failures - Switching Strategy',
+                        'incomplete_data': '📊 Incomplete Data - Seeking More Sources',
+                        'unclear_intent': '❓ Unclear Intent - Need Clarification',
+                        'unknown_intent_llm_fallback': '🤖 Out-of-Domain Query - Using LLM General Knowledge',
+                        'clarification_required': '❓ In-Domain Query - Asking User for Clarification'
+                    }.get(reason, f'🔍 {reason}')
+
+                    # Confidence badge
+                    if confidence >= 0.8:
+                        conf_badge = "🟢 HIGH"
+                        conf_color = "success"
+                    elif confidence >= 0.6:
+                        conf_badge = "🟡 MEDIUM"
+                        conf_color = "warning"
+                    else:
+                        conf_badge = "🔴 LOW"
+                        conf_color = "error"
+
+                    # Use colored container
+                    with st.container():
+                        st.markdown(f"**🔁 Feedback Iteration {iter_num}**")
+                        col1, col2 = st.columns([1, 2])
+                        with col1:
+                            st.markdown(f"**Reason:** {reason_display}")
+                            st.markdown(f"**Confidence:** {conf_badge} `{confidence:.2f}`")
+
+                            # Display action if available (for unknown/clarify intents)
+                            action = iteration.get('action', '')
+                            if action:
+                                action_display = {
+                                    'using_llm_general_knowledge': '💭 Using LLM General Knowledge',
+                                    'asking_user_for_clarification': '💬 Asking User for Clarification'
+                                }.get(action, action)
+                                st.info(f"**Action:** {action_display}")
+
+                        with col2:
+                            if fallback_tools:
+                                st.success(f"✨ **Intelligent Orchestration**: Agent automatically suggested trying `{', '.join(fallback_tools)}` as alternative")
+                            else:
+                                # Check for missing_params (clarification intent)
+                                missing_params = iteration.get('missing_params', [])
+                                if missing_params:
+                                    st.warning(f"🔍 **Missing Information**: {', '.join(missing_params)}")
+                                elif not action:
+                                    st.markdown(f"**Fallback Tools:** None suggested")
+                        st.caption(f"⏰ {timestamp[:19] if len(timestamp) > 19 else timestamp}")
+                        st.markdown("---")
+
+                st.success("💡 **Key Insight**: This feedback loop prevents failures by automatically trying alternative strategies when initial tools don't provide sufficient data.")
+            else:
+                # No retries - this is actually a GOOD thing!
+                st.success("""
+                ✅ **No Retries Needed - First Attempt Success!**
+
+                The agent successfully answered your query on the first attempt without needing to:
+                - Try alternative tools
+                - Request clarification
+                - Switch strategies
+
+                **This indicates:**
+                - High confidence in the initial tool selection
+                - Successful data retrieval
+                - Clear query intent
+
+                💡 The feedback loop is ready to activate if confidence is low or tools fail.
+                """)
+
+            # ═══════════════════════════════════════════════════════════════════
+
+            # Answer (with special handling for LLM fallback)
             st.markdown("**Answer:**")
-            st.info(result.get("final_answer", "No answer generated"))
+
+            final_answer = result.get("final_answer", "No answer generated")
+
+            # Check if this is an LLM fallback response (off-topic query)
+            if result.get('off_topic_query') or "⚠️ **Note: Query appears outside monitoring/metrics domain**" in final_answer:
+                # Special styling for LLM fallback
+                st.warning("⚠️ **LLM FALLBACK MODE ACTIVE**")
+                st.markdown("""
+                <div style="background-color: #fff3cd; border-left: 5px solid #ffc107; padding: 15px; margin: 10px 0; border-radius: 5px;">
+                    <strong>ℹ️ This response uses general AI knowledge</strong><br>
+                    <small>Your query was outside the monitoring/metrics domain, so specialized tools were not used.</small>
+                </div>
+                """, unsafe_allow_html=True)
+                st.markdown(final_answer)
+            else:
+                st.info(final_answer)
 
             # Tools Executed
             if result.get('tools_executed'):
@@ -1864,12 +2234,168 @@ with tab_tests:
     # Run Tests
     st.markdown("### ▶️ Run Tests")
 
-    selected_test = st.selectbox(
-        "Select test to run:",
-        ["All Tests"] + list(test_files.keys())
-    )
+    st.info("💡 **Tip**: To see test executions in Observability tab, use 'Run in Agent' button below")
+
+    col1, col2 = st.columns(2)
+
+    with col1:
+        selected_test = st.selectbox(
+            "Select test to run:",
+            ["All Tests"] + list(test_files.keys())
+        )
+
+    with col2:
+        st.markdown("**Or run via agent:**")
+        if st.button("🤖 Run Orchestration Tests in Agent", help="Executes test queries through agent and logs to Observability"):
+            st.markdown("### 🧪 Running Orchestration Test Queries")
+
+            # Define orchestration test queries
+            test_queries = [
+                ("Orchestration Logging", "What is the latency for api-gateway?"),
+                ("Off-Topic Detection 1", "What's the weather like today?"),
+                ("Off-Topic Detection 2", "Hello! How are you doing?"),
+                ("Off-Topic Detection 3", "Tell me a joke"),
+                ("Clarification Required 1", "Show me the latency"),
+                ("Clarification Required 2", "What's the error rate?"),
+                ("Context-Aware Tool Selection", "Show me CPU usage for api-gateway"),
+                ("Feedback Loop Retry", "Show me metrics for nonexistent-service-xyz-12345"),
+                ("Intelligent Fallback Routing", "What is the latency for api-gateway in the last 6 hours?"),
+            ]
+
+            progress_bar = st.progress(0)
+            status_text = st.empty()
+
+            for idx, (test_name, query) in enumerate(test_queries, 1):
+                progress = idx / len(test_queries)
+                progress_bar.progress(progress)
+                status_text.info(f"🔄 Running: {test_name} ({idx}/{len(test_queries)})")
+
+                with st.expander(f"**{idx}. {test_name}**", expanded=False):
+                    st.code(query, language="text")
+
+                    try:
+                        # Import here to avoid circular imports
+                        from agent import run_agent
+
+                        # Run the query
+                        result = run_agent(query, verbose=False)
+
+                        # Add to history
+                        if 'agent_history' not in st.session_state:
+                            st.session_state.agent_history = []
+
+                        st.session_state.agent_history.insert(0, {
+                            'query': query,
+                            'result': result,
+                            'timestamp': datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+                        })
+
+                        # Show quick summary
+                        col1, col2, col3 = st.columns(3)
+                        with col1:
+                            st.metric("Intent", result.get('intent', 'N/A'))
+                        with col2:
+                            st.metric("Tools", len(result.get('tools_executed', [])))
+                        with col3:
+                            st.metric("Confidence", f"{result.get('confidence', 0):.2f}")
+
+                        st.success(f"✅ Completed - Check Observability tab for details")
+
+                    except Exception as e:
+                        st.error(f"❌ Error: {e}")
+
+            progress_bar.progress(1.0)
+            status_text.success(f"✅ Completed {len(test_queries)} test queries - View in Observability tab!")
+
+            st.markdown("---")
+            st.success("🎉 **All orchestration test queries logged to Observability tab!**")
+            st.info("📊 Switch to **Observability** tab to see the query history with orchestration & feedback metrics")
+
+    st.markdown("---")
 
     if st.button("🚀 Run Tests", type="primary"):
+        # Dictionary mapping test scenarios to their queries and expected behavior
+        TEST_QUERIES_DETAILS = {
+            "Orchestration Logging": {
+                "queries": ["What is the latency for api-gateway?"],
+                "expected": [
+                    "✓ orchestration_log populated with decisions",
+                    "✓ Each decision has stage, intent, reasoning, and retry_iteration",
+                    "✓ Tool selection reasoning visible"
+                ],
+                "purpose": "Validates that every decision is logged for transparency"
+            },
+            "Off-Topic Detection": {
+                "queries": [
+                    "What's the weather like today?",
+                    "Hello! How are you doing?",
+                    "Tell me a joke"
+                ],
+                "expected": [
+                    "✓ Intent classified as 'unknown'",
+                    "✓ off_topic_query flag set to True",
+                    "✓ NO tools executed (cost optimization)",
+                    "✓ feedback_iterations array populated with 'unknown_intent_llm_fallback'",
+                    "✓ LLM fallback response with guidance"
+                ],
+                "purpose": "Ensures out-of-domain queries don't waste resources and are logged as feedback"
+            },
+            "Clarification Required": {
+                "queries": [
+                    "Show me the latency",
+                    "What's the error rate?"
+                ],
+                "expected": [
+                    "✓ Intent classified as 'clarify'",
+                    "✓ clarification_question generated",
+                    "✓ NO tools executed (waiting for user input)",
+                    "✓ feedback_iterations array populated with 'clarification_required'",
+                    "✓ missing_params identified (e.g., 'service_name')"
+                ],
+                "purpose": "Ensures vague in-domain queries trigger clarification request feedback loop"
+            },
+            "Context-Aware Tool Selection": {
+                "queries": ["Show me CPU usage for api-gateway"],
+                "expected": [
+                    "✓ Uses ONLY SQL database (CPU not in API)",
+                    "✓ Does NOT use metrics API",
+                    "✓ Orchestration reasoning mentions CPU/database"
+                ],
+                "purpose": "Validates intelligent tool routing based on data availability"
+            },
+            "Feedback Loop Retry": {
+                "queries": ["Show me metrics for nonexistent-service-xyz-12345"],
+                "expected": [
+                    "✓ Retry triggered when service not found",
+                    "✓ feedback_iterations array populated",
+                    "✓ retry_count > 0",
+                    "✓ Orchestration log shows multiple iterations"
+                ],
+                "purpose": "Tests adaptive retry mechanism with intelligent fallback"
+            },
+            "Intelligent Fallback Routing": {
+                "queries": ["What is the latency for api-gateway in the last 6 hours?"],
+                "expected": [
+                    "✓ Uses both API and SQL database",
+                    "✓ Fallback tools suggested if needed",
+                    "✓ Data quality assessment performed"
+                ],
+                "purpose": "Validates alternative routing when primary sources fail"
+            }
+        }
+
+        # Show test queries that will be executed
+        with st.expander("📋 View Test Queries Being Executed", expanded=True):
+            st.markdown("**These queries will be tested:**")
+            for test_name, details in TEST_QUERIES_DETAILS.items():
+                st.markdown(f"##### {test_name}")
+                st.markdown(f"*{details['purpose']}*")
+
+                for i, query in enumerate(details['queries'], 1):
+                    st.code(query, language="text")
+
+                st.markdown("---")
+
         try:
             if selected_test == "All Tests":
                 st.markdown("### 📊 Test Results")
@@ -2841,6 +3367,62 @@ with tab_observability:
 
     st.markdown("---")
 
+    # ═══════════════════════════════════════════════════════════════════
+    # LOAD TEST/DEMO RESULTS
+    # ═══════════════════════════════════════════════════════════════════
+
+    st.markdown("### 📂 Load Execution Results")
+    st.markdown("Import test or demo execution results into observability analytics")
+
+    load_col1, load_col2 = st.columns(2)
+
+    with load_col1:
+        test_results_file = project_root / "data" / "test_executions.json"
+        if test_results_file.exists():
+            if st.button("📥 Load Test Results", help="Load results from test/test_feedback_loop.py"):
+                try:
+                    with open(test_results_file, 'r') as f:
+                        test_executions = json.load(f)
+
+                    # Add to agent history
+                    for execution in test_executions:
+                        st.session_state.agent_history.insert(0, execution)
+
+                    st.success(f"✅ Loaded {len(test_executions)} test executions into observability!")
+                    st.rerun()
+                except Exception as e:
+                    st.error(f"❌ Error loading test results: {e}")
+        else:
+            st.info("💡 No test results available. Run `python3 test/test_feedback_loop.py` first.")
+
+    with load_col2:
+        demo_results_file = project_root / "data" / "demo_executions.json"
+        if demo_results_file.exists():
+            if st.button("📥 Load Demo Results", help="Load results from demo/demo_agent.py"):
+                try:
+                    with open(demo_results_file, 'r') as f:
+                        demo_executions = json.load(f)
+
+                    # Add to agent history
+                    for execution in demo_executions:
+                        st.session_state.agent_history.insert(0, execution)
+
+                    st.success(f"✅ Loaded {len(demo_executions)} demo executions into observability!")
+                    st.rerun()
+                except Exception as e:
+                    st.error(f"❌ Error loading demo results: {e}")
+        else:
+            st.info("💡 No demo results available. Run `python3 demo/demo_agent.py` first.")
+
+    # Clear button
+    if st.session_state.agent_history:
+        if st.button("🗑️ Clear All History", help="Remove all executions from observability"):
+            st.session_state.agent_history = []
+            st.success("✅ Cleared all execution history!")
+            st.rerun()
+
+    st.markdown("---")
+
     # Detailed configuration
     st.markdown("### 🔧 Detailed Configuration")
 
@@ -2991,11 +3573,240 @@ with tab_observability:
 
     st.markdown("---")
 
-    # Agent Execution Traces
-    st.markdown("### 📊 Recent Agent Executions")
+    # ═══════════════════════════════════════════════════════════════════
+    # ORCHESTRATION & FEEDBACK LOOP ANALYTICS
+    # ═══════════════════════════════════════════════════════════════════
 
     if st.session_state.agent_history:
-        st.markdown(f"**Total Executions:** {len(st.session_state.agent_history)}")
+        st.markdown("### 🎯 Orchestration Analytics (Across All Executions)")
+
+        # Aggregate orchestration statistics
+        total_decisions = 0
+        total_feedback_iterations_orch = 0
+        tools_usage = {}
+        intent_distribution = {}
+        feedback_reasons_orch = {}
+
+        for item in st.session_state.agent_history:
+            result = item['result']
+
+            # Count orchestration decisions
+            orch_log = result.get('orchestration_log', [])
+            total_decisions += len(orch_log)
+
+            # Count ALL feedback iterations (includes unknown, clarify, retry, fallback)
+            feedback_iterations = result.get('feedback_iterations', [])
+            total_feedback_iterations_orch += len(feedback_iterations)
+
+            # Track tool usage
+            for decision in orch_log:
+                decision_text = decision.get('decision', '')
+                if 'Selected' in decision_text and ':' in decision_text:
+                    tools_part = decision_text.split(':')[-1].strip()
+                    for tool in tools_part.split(','):
+                        tool = tool.strip()
+                        if tool and tool != 'none':
+                            tools_usage[tool] = tools_usage.get(tool, 0) + 1
+
+            # Track intent distribution
+            intent = result.get('intent', 'unknown')
+            intent_distribution[intent] = intent_distribution.get(intent, 0) + 1
+
+            # Track ALL feedback reasons (unknown, clarify, retry, fallback)
+            for iteration in feedback_iterations:
+                reason = iteration.get('reason', 'unknown')
+                feedback_reasons_orch[reason] = feedback_reasons_orch.get(reason, 0) + 1
+
+        # Display orchestration metrics
+        orch_col1, orch_col2, orch_col3, orch_col4 = st.columns(4)
+
+        with orch_col1:
+            st.metric("Total Orchestration Decisions", total_decisions,
+                     help="Total number of tool selection decisions across all queries")
+
+        with orch_col2:
+            avg_decisions = total_decisions / len(st.session_state.agent_history) if st.session_state.agent_history else 0
+            st.metric("Avg Decisions per Query", f"{avg_decisions:.1f}",
+                     help="Average tool selections per query")
+
+        with orch_col3:
+            feedback_rate = (total_feedback_iterations_orch / len(st.session_state.agent_history)) if st.session_state.agent_history else 0
+            st.metric("Avg Feedback Loops", f"{feedback_rate:.2f}",
+                     help="Average feedback iterations per query (unknown, clarify, retry, fallback)")
+
+        with orch_col4:
+            unique_tools = len(tools_usage)
+            st.metric("Unique Tools Used", unique_tools,
+                     help="Number of different tools utilized")
+
+        # Tool usage breakdown
+        if tools_usage:
+            st.markdown("#### 🛠️ Tool Usage Distribution")
+            tool_col1, tool_col2 = st.columns(2)
+
+            with tool_col1:
+                st.markdown("**Most Used Tools:**")
+                sorted_tools = sorted(tools_usage.items(), key=lambda x: x[1], reverse=True)
+                for tool, count in sorted_tools[:5]:
+                    pct = (count / total_decisions) * 100 if total_decisions > 0 else 0
+                    st.write(f"- **{tool}**: {count} times ({pct:.1f}%)")
+
+            with tool_col2:
+                st.markdown("**Intent Distribution:**")
+                sorted_intents = sorted(intent_distribution.items(), key=lambda x: x[1], reverse=True)
+                for intent, count in sorted_intents:
+                    pct = (count / len(st.session_state.agent_history)) * 100
+                    st.write(f"- **{intent}**: {count} queries ({pct:.1f}%)")
+
+        st.markdown("---")
+
+        # Feedback Loop Analytics
+        st.markdown("### 🔁 Feedback Loop Analytics")
+
+        total_feedback_iterations = sum(len(item['result'].get('feedback_iterations', []))
+                                        for item in st.session_state.agent_history)
+
+        # Count queries with ANY feedback iterations (includes unknown, clarify, retry, etc.)
+        queries_with_feedback = sum(1 for item in st.session_state.agent_history
+                                   if len(item['result'].get('feedback_iterations', [])) > 0)
+
+        feedback_col1, feedback_col2, feedback_col3 = st.columns(3)
+
+        with feedback_col1:
+            st.metric("Total Feedback Iterations", total_feedback_iterations,
+                     help="Total number of adaptive feedback loops (includes unknown, clarify, retry)")
+
+        with feedback_col2:
+            st.metric("Queries with Feedback", f"{queries_with_feedback}/{len(st.session_state.agent_history)}",
+                     help="Queries that triggered ANY feedback mechanism (unknown, clarify, retry, fallback)")
+
+        with feedback_col3:
+            success_rate = ((len(st.session_state.agent_history) - queries_with_feedback) / len(st.session_state.agent_history)) * 100 if st.session_state.agent_history else 0
+            st.metric("First-Attempt Success Rate", f"{success_rate:.1f}%",
+                     help="Queries answered without any feedback loop")
+
+        # Collect ALL feedback reasons from feedback_iterations array
+        feedback_reason_counts = {}
+        for item in st.session_state.agent_history:
+            feedback_iterations = item['result'].get('feedback_iterations', [])
+            for iteration in feedback_iterations:
+                reason = iteration.get('reason', 'unknown')
+                feedback_reason_counts[reason] = feedback_reason_counts.get(reason, 0) + 1
+
+        # Feedback reasons breakdown
+        if feedback_reason_counts:
+            st.markdown("#### 🔍 Feedback Loop Reasons Distribution")
+
+            reason_display = {
+                'empty_results_fallback': '🔄 Empty Results → Alternative Tools',
+                'tool_failures': '⚠️ Tool Failures → Retry',
+                'incomplete_data': '📊 Incomplete Data → Seek More Sources',
+                'unclear_intent': '❓ Unclear Intent → Clarification',
+                'unknown_intent_llm_fallback': '🤖 Unknown Intent → LLM Fallback',
+                'clarification_required': '❓ Clarification → Ask User',
+                'low_confidence_general': '🔻 Low Confidence → Retry'
+            }
+
+            for reason, count in sorted(feedback_reason_counts.items(), key=lambda x: x[1], reverse=True):
+                display_name = reason_display.get(reason, f'🔍 {reason}')
+                pct = (count / total_feedback_iterations) * 100 if total_feedback_iterations > 0 else 0
+                st.write(f"- **{display_name}**: {count} times ({pct:.1f}% of all feedback)")
+        else:
+            st.success("✅ **Perfect Record!** No feedback loops triggered - all queries answered successfully on first attempt.")
+
+        st.markdown("---")
+
+    # ═══════════════════════════════════════════════════════════════════
+    # QUERY HISTORY
+    # ═══════════════════════════════════════════════════════════════════
+
+    if st.session_state.agent_history:
+        st.markdown("### 📜 Query History (Last 20 Executions)")
+        st.markdown("Complete history of all queries with orchestration and feedback details:")
+
+        # Create structured table
+        import pandas as pd
+
+        history_data = []
+        for item in st.session_state.agent_history[:20]:
+            result = item['result']
+
+            # Extract key metrics
+            orchestration_count = len(result.get('orchestration_log', []))
+            feedback_count = len(result.get('feedback_iterations', []))
+            retry_count = result.get('retry_count', 0)
+
+            # Determine feedback status and type
+            if feedback_count == 0:
+                feedback_status = '✅ First-attempt'
+            else:
+                # Get the reason(s) for feedback
+                feedback_iterations = result.get('feedback_iterations', [])
+                reasons = [fb.get('reason', 'unknown') for fb in feedback_iterations]
+
+                # Categorize feedback type
+                if 'unknown_intent_llm_fallback' in reasons:
+                    feedback_type = '🤖 LLM'
+                elif 'clarification_required' in reasons:
+                    feedback_type = '❓ Clarify'
+                elif 'empty_results_fallback' in reasons:
+                    feedback_type = '🔄 Fallback'
+                elif any('retry' in r or 'failure' in r for r in reasons):
+                    feedback_type = '🔄 Retry'
+                else:
+                    feedback_type = '🔄'
+
+                feedback_status = f'{feedback_type} {feedback_count}x'
+
+            history_data.append({
+                'Timestamp': item['timestamp'],
+                'Query': item['query'][:50] + ('...' if len(item['query']) > 50 else ''),
+                'Intent': result.get('intent', 'N/A'),
+                'Tools': len(result.get('tools_executed', [])),
+                'Orchestration': orchestration_count,
+                'Feedback Loops': feedback_count,
+                'Type': feedback_status,
+                'Confidence': f"{result.get('confidence', 0):.2f}",
+                'Duration (ms)': f"{result.get('total_duration_ms', 0):.0f}"
+            })
+
+        if history_data:
+            df = pd.DataFrame(history_data)
+
+            # Display with color coding
+            st.dataframe(
+                df,
+                use_container_width=True,
+                height=400
+            )
+
+            # Quick stats
+            st.markdown("**Quick Stats:**")
+            stats_col1, stats_col2, stats_col3, stats_col4 = st.columns(4)
+
+            with stats_col1:
+                total_queries = len(history_data)
+                st.metric("Total Queries", total_queries)
+
+            with stats_col2:
+                avg_tools = sum(int(d['Tools']) for d in history_data) / len(history_data) if history_data else 0
+                st.metric("Avg Tools/Query", f"{avg_tools:.1f}")
+
+            with stats_col3:
+                queries_with_feedback = sum(1 for d in history_data if int(d['Feedback Loops']) > 0)
+                st.metric("Queries w/ Feedback", f"{queries_with_feedback}/{total_queries}")
+
+            with stats_col4:
+                avg_duration = sum(float(d['Duration (ms)']) for d in history_data) / len(history_data) if history_data else 0
+                st.metric("Avg Duration", f"{avg_duration:.0f}ms")
+
+        st.markdown("---")
+
+    # Agent Execution Traces (Detailed View)
+    st.markdown("### 📊 Detailed Execution Traces")
+
+    if st.session_state.agent_history:
+        st.markdown(f"**Expand for detailed trace information:**")
 
         # Show recent executions
         for idx, item in enumerate(st.session_state.agent_history[:10], 1):
@@ -3067,8 +3878,44 @@ with tab_observability:
         """)
 
         # Refresh button
-        if st.button("🔄 Fetch Latest Traces from LangSmith"):
-            st.info("Note: Direct API integration coming soon. Visit LangSmith dashboard for now.")
+        refresh_col1, refresh_col2 = st.columns([1, 3])
+        with refresh_col1:
+            if st.button("🔄 Fetch Latest Traces"):
+                with st.spinner("Fetching traces from LangSmith API..."):
+                    success = refresh_langsmith_cache()
+                    if success:
+                        langsmith_traces = get_langsmith_traces()
+                        st.success(f"✅ Fetched {len(langsmith_traces)} traces from LangSmith!")
+                        st.rerun()
+                    else:
+                        st.error("❌ Failed to fetch traces. Check API key and connection.")
+
+        with refresh_col2:
+            cache_status = get_cache_status()
+            langsmith_status = cache_status.get('langsmith', {})
+            if langsmith_status.get('exists'):
+                age_hours = langsmith_status.get('age_hours', 0)
+                st.caption(f"🕒 Cache age: {age_hours:.1f} hours")
+
+        # Display cached traces
+        langsmith_traces = get_langsmith_traces()
+        if langsmith_traces:
+            st.markdown(f"**📊 Showing {len(langsmith_traces)} cached traces:**")
+
+            with st.expander(f"View LangSmith Traces ({len(langsmith_traces)} total)"):
+                for trace in langsmith_traces[:20]:  # Show first 20
+                    st.markdown(f"""
+                    **Run:** {trace.get('name', 'N/A')} | **Status:** {trace.get('status', 'N/A')}
+                    **Type:** {trace.get('run_type', 'N/A')} | **ID:** `{trace.get('id', 'N/A')[:12]}...`
+                    **Started:** {trace.get('start_time', 'N/A')}
+                    [🔗 View in LangSmith]({trace.get('url', '#')})
+                    """)
+                    st.markdown("---")
+
+                if len(langsmith_traces) > 20:
+                    st.info(f"Showing first 20 of {len(langsmith_traces)} traces. Refresh cache to load more.")
+        else:
+            st.info("💡 No cached traces. Click 'Fetch Latest Traces' to load from LangSmith API.")
     else:
         st.warning("⚠️ LangSmith not configured. Enable it to track all agent executions.")
 
@@ -3273,6 +4120,500 @@ with tab_observability:
                 st.code(traceback.format_exc())
     else:
         st.info("No data to export. Run some queries first.")
+
+
+# ============================================================================
+# TAB 11: API TESTING
+# ============================================================================
+
+with tab_api:
+    st.markdown("## 🌐 API Testing & Explorer")
+    st.markdown("Interactive API testing interface for the metrics REST API")
+
+    # Check API server status
+    api_running = False
+    try:
+        import requests
+        response = requests.get("http://127.0.0.1:8001/health", timeout=2)
+        api_running = response.status_code == 200
+    except:
+        api_running = False
+
+    if api_running:
+        st.success("✅ API Server is running at http://127.0.0.1:8001")
+    else:
+        st.error("❌ API Server is not running")
+        st.markdown("""
+        **Start the API server:**
+        ```bash
+        python start_api_server.py
+        ```
+        """)
+
+    st.markdown("---")
+
+    # API Documentation
+    st.markdown("### 📚 Available Endpoints")
+
+    endpoints = [
+        {
+            "method": "GET",
+            "path": "/health",
+            "description": "Health check endpoint for a service",
+            "params": {
+                "service": "Service name (query parameter)"
+            }
+        },
+        {
+            "method": "GET",
+            "path": "/services",
+            "description": "Get list of all monitored services",
+            "params": {}
+        },
+        {
+            "method": "GET",
+            "path": "/metrics/latency",
+            "description": "Get latency metrics (p50, p95, p99) for a service",
+            "params": {
+                "service": "Service name (required)",
+                "period": "Time period: 1h, 6h, 24h, 7d (default: 1h)"
+            }
+        },
+        {
+            "method": "GET",
+            "path": "/metrics/throughput",
+            "description": "Get throughput/RPS metrics for a service",
+            "params": {
+                "service": "Service name (required)",
+                "period": "Time period: 1h, 6h, 24h, 7d (default: 1h)",
+                "interval": "Data interval: 1m, 5m, 15m, 1h (default: 5m)"
+            }
+        },
+        {
+            "method": "GET",
+            "path": "/metrics/errors",
+            "description": "Get error metrics (4xx, 5xx counts) for a service",
+            "params": {
+                "service": "Service name (required)",
+                "period": "Time period: 1h, 6h, 24h, 7d (default: 1h)"
+            }
+        },
+        {
+            "method": "POST",
+            "path": "/metrics/query",
+            "description": "Query multiple metrics for multiple services (complex query)",
+            "params": {
+                "body": "JSON body with services, metrics, time_range"
+            }
+        }
+    ]
+
+    for endpoint in endpoints:
+        with st.expander(f"{endpoint['method']} {endpoint['path']}"):
+            st.markdown(f"**Description:** {endpoint['description']}")
+
+            if endpoint['params']:
+                st.markdown("**Parameters:**")
+                for param, desc in endpoint['params'].items():
+                    st.markdown(f"  - `{param}`: {desc}")
+
+            # Show example
+            example_path = endpoint['path']
+            if endpoint['params'] and 'service' in endpoint['params']:
+                example_url = f"curl 'http://127.0.0.1:8001{example_path}?service=api-gateway'"
+            else:
+                example_url = f"curl http://127.0.0.1:8001{example_path}"
+
+            st.code(example_url, language="bash")
+
+    st.markdown("---")
+
+    # Interactive API Testing
+    st.markdown("### 🧪 Interactive API Testing")
+
+    col1, col2 = st.columns([1, 2])
+
+    with col1:
+        # Endpoint selection (prefilled with latency endpoint)
+        endpoint_choice = st.selectbox(
+            "Select Endpoint:",
+            [
+                "GET /metrics/latency",
+                "GET /metrics/throughput",
+                "GET /metrics/errors",
+                "GET /health",
+                "GET /services"
+            ],
+            index=0,
+            help="Choose the API endpoint to test"
+        )
+
+        # Default parameters (always set, even if hidden)
+        service_name = "api-gateway"
+        period = "1h"
+        interval = "5m"
+
+        # Service parameter for most endpoints
+        if endpoint_choice != "GET /services":
+            service_name = st.selectbox(
+                "Service Name:",
+                ["api-gateway", "auth-service", "business-logic", "data-processor", "payment-service"],
+                index=0,
+                help="Select the service to query"
+            )
+        else:
+            st.info("💡 This endpoint doesn't require a service parameter")
+
+        # Period parameter for metrics endpoints
+        if "metrics" in endpoint_choice:
+            period = st.selectbox(
+                "Time Period:",
+                ["1h", "6h", "24h", "7d"],
+                index=0,
+                help="Select the time range for metrics"
+            )
+
+            # Interval for throughput
+            if "throughput" in endpoint_choice:
+                interval = st.selectbox(
+                    "Data Interval:",
+                    ["1m", "5m", "15m", "1h"],
+                    index=1,
+                    help="Data point interval for throughput metrics"
+                )
+
+        # Build preview URL
+        base_url = "http://127.0.0.1:8001"
+
+        if endpoint_choice == "GET /health":
+            preview_url = f"{base_url}/health?service={service_name}"
+        elif endpoint_choice == "GET /services":
+            preview_url = f"{base_url}/services"
+        elif endpoint_choice == "GET /metrics/latency":
+            preview_url = f"{base_url}/metrics/latency?service={service_name}&period={period}"
+        elif endpoint_choice == "GET /metrics/throughput":
+            preview_url = f"{base_url}/metrics/throughput?service={service_name}&period={period}&interval={interval}"
+        elif endpoint_choice == "GET /metrics/errors":
+            preview_url = f"{base_url}/metrics/errors?service={service_name}&period={period}"
+        else:
+            preview_url = f"{base_url}/"
+
+        # Show URL preview
+        st.markdown("**Request URL:**")
+        st.code(preview_url, language="text")
+
+        # Execute button
+        execute_button = st.button("🚀 Execute Request", type="primary", disabled=not api_running, use_container_width=True)
+
+        if execute_button:
+            try:
+                # Make request
+                start_time = time.time()
+                response = requests.get(preview_url, timeout=10)
+                duration = (time.time() - start_time) * 1000
+
+                # Store in session state
+                st.session_state.last_api_response = {
+                    "url": preview_url,
+                    "status_code": response.status_code,
+                    "headers": dict(response.headers),
+                    "body": response.json() if response.headers.get('content-type', '').startswith('application/json') else response.text,
+                    "duration_ms": duration
+                }
+
+                st.rerun()
+
+            except requests.exceptions.Timeout:
+                st.session_state.last_api_response = {
+                    "url": preview_url,
+                    "error": "Request timed out (>10s)"
+                }
+                st.rerun()
+            except requests.exceptions.ConnectionError:
+                st.session_state.last_api_response = {
+                    "url": preview_url,
+                    "error": "Connection failed. Is the API server running?"
+                }
+                st.rerun()
+            except Exception as e:
+                st.session_state.last_api_response = {
+                    "url": preview_url,
+                    "error": str(e)
+                }
+                st.rerun()
+
+    with col2:
+        # Response display
+        if 'last_api_response' in st.session_state and st.session_state.last_api_response:
+            resp = st.session_state.last_api_response
+
+            if 'error' in resp:
+                st.error(f"❌ **Request Failed**")
+                st.code(resp['error'], language="text")
+
+                # Show the URL that failed
+                if 'url' in resp:
+                    st.markdown(f"**URL:** `{resp['url']}`")
+
+                # Helpful troubleshooting
+                st.markdown("**Troubleshooting:**")
+                if "Connection failed" in resp['error'] or "ConnectionError" in str(resp.get('error', '')):
+                    st.markdown("""
+                    - Is the API server running? Start it with:
+                      ```bash
+                      python start_api_server.py
+                      ```
+                    - Check server status in the sidebar
+                    """)
+                elif "timed out" in resp['error']:
+                    st.markdown("- Request took too long (>10s). The API server might be overloaded.")
+            else:
+                # Status header with metrics
+                status_color = "🟢" if resp['status_code'] == 200 else "🟡" if resp['status_code'] < 400 else "🔴"
+                status_text = "Success" if resp['status_code'] == 200 else "Error"
+
+                col_a, col_b, col_c = st.columns(3)
+                with col_a:
+                    st.metric("Status", f"{status_color} {resp['status_code']}")
+                with col_b:
+                    st.metric("Duration", f"{resp['duration_ms']:.2f}ms")
+                with col_c:
+                    content_type = resp['headers'].get('content-type', 'N/A')
+                    st.metric("Type", "JSON" if 'json' in content_type else "Other")
+
+                # Response body
+                st.markdown("---")
+                st.markdown("**📦 Response Body:**")
+
+                # Pretty print JSON with syntax highlighting
+                if isinstance(resp['body'], dict) or isinstance(resp['body'], list):
+                    st.json(resp['body'])
+
+                    # Show key metrics if present
+                    if isinstance(resp['body'], dict):
+                        if 'metrics' in resp['body']:
+                            st.markdown("**Key Metrics:**")
+                            metrics = resp['body']['metrics']
+                            if isinstance(metrics, dict):
+                                metric_cols = st.columns(len(metrics))
+                                for idx, (key, value) in enumerate(metrics.items()):
+                                    with metric_cols[idx]:
+                                        st.metric(key.upper(), f"{value}")
+                else:
+                    st.code(str(resp['body']), language="json")
+
+                # Response headers (collapsed by default)
+                with st.expander("📋 Response Headers", expanded=False):
+                    st.json(resp['headers'])
+
+                # Copy cURL command
+                st.markdown("---")
+                st.markdown("**🔗 cURL Command:**")
+                curl_command = f"curl -X GET '{resp['url']}'"
+                st.code(curl_command, language="bash")
+
+                # Python requests example
+                with st.expander("🐍 Python Example", expanded=False):
+                    python_code = f"""import requests
+
+response = requests.get('{resp['url']}')
+data = response.json()
+print(data)"""
+                    st.code(python_code, language="python")
+        else:
+            # Welcome message with quick start
+            st.markdown("### 👋 Welcome to API Testing!")
+            st.markdown("""
+            **Quick Start:**
+            1. ✅ Endpoint and parameters are **already prefilled**
+            2. 👀 Check the **Request URL** preview on the left
+            3. 🚀 Click **Execute Request** to test the API
+            4. 📊 View the response here
+
+            **Tips:**
+            - Change the service or time period to test different scenarios
+            - All endpoints are ready to use immediately
+            - Response times typically < 50ms
+            """)
+
+            # Show example response
+            with st.expander("📖 Example Response", expanded=False):
+                example = {
+                    "service": "api-gateway",
+                    "period": "1h",
+                    "metrics": {
+                        "p50": 25.3,
+                        "p95": 65.7,
+                        "p99": 150.2
+                    },
+                    "sample_count": 3600
+                }
+                st.json(example)
+
+    st.markdown("---")
+
+    # API Schema / OpenAPI
+    st.markdown("### 📖 API Schema")
+
+    with st.expander("View OpenAPI Specification"):
+        openapi_spec = {
+            "openapi": "3.0.0",
+            "info": {
+                "title": "Metrics API",
+                "version": "1.0.0",
+                "description": "REST API for retrieving service metrics and health status"
+            },
+            "servers": [
+                {
+                    "url": "http://127.0.0.1:8001",
+                    "description": "Local development server"
+                }
+            ],
+            "paths": {
+                "/health": {
+                    "get": {
+                        "summary": "Health check",
+                        "responses": {
+                            "200": {
+                                "description": "API is healthy",
+                                "content": {
+                                    "application/json": {
+                                        "schema": {
+                                            "type": "object",
+                                            "properties": {
+                                                "status": {"type": "string"},
+                                                "timestamp": {"type": "string"}
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "/services": {
+                    "get": {
+                        "summary": "Get list of services",
+                        "responses": {
+                            "200": {
+                                "description": "List of monitored services",
+                                "content": {
+                                    "application/json": {
+                                        "schema": {
+                                            "type": "array",
+                                            "items": {"type": "string"}
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+"/metrics/latency": {
+                    "get": {
+                        "summary": "Get latency metrics for a service",
+                        "parameters": [
+                            {
+                                "name": "service",
+                                "in": "query",
+                                "required": True,
+                                "schema": {"type": "string"},
+                                "description": "Service name (api-gateway, auth-service, etc.)"
+                            },
+                            {
+                                "name": "period",
+                                "in": "query",
+                                "required": False,
+                                "schema": {"type": "string", "enum": ["1h", "6h", "24h", "7d"]},
+                                "description": "Time period (default: 1h)"
+                            }
+                        ],
+                        "responses": {
+                            "200": {
+                                "description": "Latency metrics with percentiles",
+                                "content": {
+                                    "application/json": {
+                                        "schema": {
+                                            "type": "object",
+                                            "properties": {
+                                                "service": {"type": "string"},
+                                                "period": {"type": "string"},
+                                                "metrics": {
+                                                    "type": "object",
+                                                    "properties": {
+                                                        "p50": {"type": "number"},
+                                                        "p95": {"type": "number"},
+                                                        "p99": {"type": "number"}
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "/metrics/throughput": {
+                    "get": {
+                        "summary": "Get throughput metrics for a service",
+                        "parameters": [
+                            {
+                                "name": "service",
+                                "in": "query",
+                                "required": True,
+                                "schema": {"type": "string"}
+                            },
+                            {
+                                "name": "period",
+                                "in": "query",
+                                "schema": {"type": "string"}
+                            }
+                        ]
+                    }
+                },
+                "/metrics/errors": {
+                    "get": {
+                        "summary": "Get error metrics for a service",
+                        "parameters": [
+                            {
+                                "name": "service",
+                                "in": "query",
+                                "required": True,
+                                "schema": {"type": "string"}
+                            },
+                            {
+                                "name": "period",
+                                "in": "query",
+                                "schema": {"type": "string"}
+                            }
+                        ]
+                    }
+                },
+                "/health": {
+                    "get": {
+                        "summary": "Health check for a service",
+                        "parameters": [
+                            {
+                                "name": "service",
+                                "in": "query",
+                                "schema": {"type": "string"}
+                            }
+                        ]
+                    }
+                }
+            }
+        }
+
+        st.json(openapi_spec)
+
+        # Download button
+        st.download_button(
+            "⬇️ Download OpenAPI Spec",
+            data=json.dumps(openapi_spec, indent=2),
+            file_name="api_openapi_spec.json",
+            mime="application/json"
+        )
 
 
 # ============================================================================

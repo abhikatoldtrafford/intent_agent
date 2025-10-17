@@ -5,12 +5,14 @@
 ## Overview
 
 An **intent-routed agent** built with LangGraph that:
-- Classifies user queries by intent (metrics, knowledge, calculation)
-- Selects and executes appropriate tools
-- Aggregates results from multiple sources
-- Performs inference and analysis
-- Implements confidence-based feedback loop
+- Classifies user queries by intent using enhanced guardrails (6 intent types)
+- Selects and executes appropriate tools with intelligent orchestration
+- Aggregates results from multiple sources with fallback routing
+- Performs inference and analysis with threshold checks
+- Implements confidence-based feedback loop (max 2 retries)
 - Returns answers with complete execution trace
+- Supports trace caching (24-hour persistence)
+- Provides comprehensive test visibility with detailed execution traces
 
 ## Architecture
 
@@ -158,14 +160,19 @@ class AgentState(TypedDict):
 Seven workflow nodes:
 
 #### Node 1: `classify_intent`
-- Uses OpenAI GPT-4o-mini to classify query intent
+- Uses OpenAI GPT-4.1-mini (latest, fastest model) to classify query intent
+- Enhanced guardrails: "MAKE REASONABLE DEFAULTS - DON'T BE PEDANTIC"
+- Includes 5 comprehensive examples for proper classification
+- Clear distinction between clarify (in-domain but vague) vs unknown (out-of-distribution)
 - Fallback to keyword-based classification
 - Updates: `intent`, `intent_confidence`, `confidence`
 
 #### Node 2: `select_tools`
-- Maps intent to appropriate tools
+- Maps intent to appropriate tools with intelligent orchestration
+- Context-aware tool selection (e.g., CPU/memory queries → only SQL, not API)
 - Considers query keywords for refinement
-- Updates: `tools_to_use`, `tool_selection_reasoning`
+- Logs all decisions with reasoning
+- Updates: `tools_to_use`, `tool_selection_reasoning`, `orchestration_log`
 
 #### Node 3: `execute_tools`
 - Executes all selected tools
@@ -175,8 +182,10 @@ Seven workflow nodes:
 
 #### Node 4: `aggregate_results`
 - Combines outputs from multiple tools
+- Intelligent fallback routing (API empty → try SQL, SQL empty → try API)
 - Assesses data quality and completeness
-- Updates: `aggregated_data`, `data_quality`
+- Suggests alternative tools for retry
+- Updates: `aggregated_data`, `data_quality`, `orchestration_log`
 
 #### Node 5: `perform_inference`
 - Analyzes aggregated data
@@ -425,7 +434,7 @@ else:
 
 ## Observability
 
-### Tracing
+### Built-in Tracing
 
 Every agent execution includes:
 - Complete trace of all events
@@ -433,6 +442,8 @@ Every agent execution includes:
 - Tool calls and responses
 - Confidence updates with reasoning
 - Timing information
+- Orchestration decisions with reasoning
+- Feedback iterations with retry reasons
 
 ```python
 result = run_agent("query", verbose=True)
@@ -442,21 +453,67 @@ for event in result['trace']:
     print(f"  Data: {event['data']}")
 ```
 
-### LangSmith Integration (Ready)
+### Trace Caching System (NEW)
 
-The agent is ready for LangSmith tracing:
+Persistent 24-hour cache for all execution traces:
+
+```python
+from utils.trace_cache import (
+    get_agent_executions,      # Load cached agent executions
+    cache_agent_execution,     # Cache a new execution
+    auto_populate_traces       # Auto-load all traces
+)
+
+# Cache an execution
+cache_agent_execution(result, query)
+
+# Get cached executions
+cached = get_agent_executions()
+```
+
+**Features**:
+- 24-hour automatic expiration
+- Auto-population on Streamlit startup
+- Multiple sources: LangSmith API, agent executions, demos, tests
+
+### Enhanced Test Visibility (NEW)
+
+All tests now show detailed execution traces:
+
+```python
+from utils.trace_display import display_execution_trace
+
+# In tests - shows detailed trace with node events, timing, decisions
+display_execution_trace(result)
+```
+
+**Control trace display**:
+```bash
+SHOW_TRACES=true python test/test_feedback_loop.py  # Show traces (default)
+SHOW_TRACES=false python test/test_feedback_loop.py  # Hide traces
+```
+
+### LangSmith Integration
+
+The agent supports LangSmith tracing with real-time API fetching:
 
 ```python
 import os
 os.environ["LANGCHAIN_TRACING_V2"] = "true"
-os.environ["LANGCHAIN_API_KEY"] = "your-langsmith-key"
-os.environ["LANGCHAIN_PROJECT"] = "intent-agent"
+os.environ["LANGCHAIN_API_KEY"] = "ls__your-langsmith-key"
+os.environ["LANGCHAIN_PROJECT"] = "intent-agent-poc"
 
 # Now all runs are traced in LangSmith
 result = run_agent("query")
 ```
 
-### OpenTelemetry Integration (Ready)
+**Features**:
+- Real-time trace fetching via LangSmith API
+- 24-hour local caching
+- View traces in Streamlit Observability tab
+- Direct links to LangSmith platform
+
+### OpenTelemetry Integration
 
 The state includes trace_id and span_id fields for OpenTelemetry:
 
@@ -474,17 +531,31 @@ print(f"Span ID: {state['span_id']}")
 agent/
 ├── __init__.py          # Package exports
 ├── tools.py             # 4 tool definitions
-├── state.py             # AgentState schema
-├── nodes.py             # 7 node implementations
+├── state.py             # AgentState schema (40+ fields)
+├── nodes.py             # 7 node implementations (1,245 lines, enhanced classification)
 ├── graph.py             # LangGraph workflow
 └── README.md            # This file
 
-tests/
-├── test_tools.py        # Tool tests
-└── test_agent.py        # Agent workflow tests
+utils/                   # NEW - Utility modules
+├── trace_cache.py       # 24-hour trace caching system (387 lines)
+└── trace_display.py     # Test trace visualization (412 lines)
 
-demo_agent.py            # Interactive demonstration
-requirements-agent.txt   # Agent dependencies
+test/                    # Comprehensive test suite
+├── test_tools.py        # Tool tests
+├── test_agent.py        # Agent workflow tests
+├── test_feedback_loop.py      # Feedback loop tests (enhanced tracing)
+├── test_orchestration.py      # Orchestration tests (enhanced tracing)
+├── test_trace_cache.py        # Trace caching tests (6 tests)
+├── test_api_endpoints.py      # API endpoint validation (5 endpoints)
+└── ...                        # 13 test files total, 41+ tests
+
+demo/
+├── demo_agent.py        # Interactive demonstration
+└── demo_rag.py          # RAG initialization demo
+
+main.py                  # Interactive CLI interface
+streamlit_app.py         # Streamlit web UI (10 tabs, 4,400+ lines)
+requirements.txt         # All dependencies
 ```
 
 ## Performance

@@ -155,6 +155,45 @@ def run_agent(query: str, session_id: str = None, verbose: bool = False) -> Agen
             if data:
                 for key, value in data.items():
                     print(f"  {key}: {value}")
+
+        # Print Orchestration Decisions
+        orchestration_log = final_state.get("orchestration_log", [])
+        if orchestration_log:
+            print("\n" + "="*80)
+            print("🎯 ORCHESTRATION DECISIONS")
+            print("="*80)
+            for i, decision in enumerate(orchestration_log, 1):
+                stage = decision.get('stage', 'unknown')
+                intent = decision.get('intent', 'unknown')
+                decision_text = decision.get('decision', 'N/A')
+                reasoning = decision.get('reasoning', 'No reasoning')
+                retry_iter = decision.get('retry_iteration', 0)
+
+                badge = "🟢" if retry_iter == 0 else "🟡" if retry_iter == 1 else "🔴"
+                print(f"\n{badge} Decision {i} (Iteration {retry_iter}):")
+                print(f"  Stage: {stage}")
+                print(f"  Intent: {intent}")
+                print(f"  Decision: {decision_text}")
+                print(f"  Reasoning: {reasoning}")
+
+        # Print Feedback Loop Iterations
+        feedback_iterations = final_state.get("feedback_iterations", [])
+        if feedback_iterations:
+            print("\n" + "="*80)
+            print("🔁 FEEDBACK LOOP ITERATIONS")
+            print("="*80)
+            for i, iteration in enumerate(feedback_iterations, 1):
+                iter_num = iteration.get('iteration', i)
+                reason = iteration.get('reason', 'unknown')
+                confidence = iteration.get('confidence_at_retry', 0)
+                fallback_tools = iteration.get('fallback_tools', [])
+
+                conf_badge = "🟢" if confidence >= 0.8 else "🟡" if confidence >= 0.6 else "🔴"
+                print(f"\n🔁 Retry Iteration {iter_num}:")
+                print(f"  Reason: {reason}")
+                print(f"  Confidence: {conf_badge} {confidence:.2f}")
+                print(f"  Fallback Tools: {', '.join(fallback_tools) if fallback_tools else 'None'}")
+
         print("="*80 + "\n")
 
     return final_state
@@ -288,13 +327,33 @@ Agent Workflow Graph:
     │      END        │
     └─────────────────┘
 
+🎯 ORCHESTRATION FEATURES:
+
+  ORCHESTRATION LOGGING (select_tools):
+    - Logs every tool selection decision with full reasoning
+    - Tracks retry iteration (0, 1, 2)
+    - Shows WHY tools were chosen, not just WHAT tools
+    - Stored in state["orchestration_log"]
+
+  INTELLIGENT FALLBACK (aggregate_results):
+    - Detects when API returns empty → suggests SQL database
+    - Detects when SQL returns empty → suggests API
+    - Prevents wasted retries by suggesting RIGHT alternative
+    - Stored in state["fallback_tools_suggested"]
+
+  FEEDBACK LOOP (check_feedback):
+    - Evaluates confidence (HIGH ≥0.8, MEDIUM ≥0.6, LOW <0.6)
+    - Triggers retry for LOW confidence (max 2 retries)
+    - Logs each retry with reason and suggested fallback tools
+    - Stored in state["feedback_iterations"]
+
 Nodes:
   1. classify_intent    - Classify query intent using OpenAI
-  2. select_tools       - Select appropriate tools based on intent
+  2. select_tools       - 🎯 Select tools + LOG ORCHESTRATION DECISION
   3. execute_tools      - Execute selected tools and collect outputs
-  4. aggregate_results  - Combine outputs from multiple tools
+  4. aggregate_results  - 🔄 Combine outputs + SUGGEST FALLBACKS
   5. perform_inference  - Analyze data and make inferences
-  6. check_feedback     - Evaluate confidence, decide retry/respond
+  6. check_feedback     - 🔁 Evaluate confidence + LOG FEEDBACK ITERATION
   7. format_response    - Create final formatted answer with trace
 
 Edges:
@@ -302,12 +361,16 @@ Edges:
   - Conditional edge at check_feedback:
     * If feedback_needed=True → retry (back to select_tools)
     * If feedback_needed=False → respond (to format_response)
-  - Max retries: 2
+  - Max retries: 2 (prevents infinite loops)
 
 State:
   - AgentState (TypedDict) passed through all nodes
   - Updated by each node with new information
-  - Final state contains answer + complete trace
+  - Final state contains:
+    ✅ final_answer
+    ✅ orchestration_log
+    ✅ feedback_iterations
+    ✅ complete trace
 """
 
 

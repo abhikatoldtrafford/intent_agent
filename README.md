@@ -30,6 +30,168 @@ This project demonstrates a sophisticated AI agent that:
 
 ---
 
+## 🎯 Orchestration & Feedback Loops
+
+### Why This Matters for Production Systems
+
+In production AI systems, **orchestration** and **feedback loops** are critical for:
+- **Reliability**: Automatic fallback when primary data sources fail
+- **Self-healing**: Intelligent retry with different strategies
+- **Explainability**: Complete visibility into WHY decisions were made
+- **Cost optimization**: Avoiding wasted API calls for off-topic queries
+
+This agent showcases **enterprise-grade orchestration patterns** that clients value:
+
+### 🔄 Intelligent Orchestration
+
+**What it does**: Makes smart decisions about which tools to use and when to switch strategies.
+
+**Real-world examples**:
+
+1. **Intelligent Fallback Routing** (lines 806-834 in `agent/nodes.py`)
+   - API returns empty → automatically tries SQL database
+   - SQL returns empty → automatically tries API
+   - Avoids wasted retries by suggesting the RIGHT alternative tool
+
+   ```python
+   # Example: User asks for current metrics, but API is down
+   # Agent automatically falls back to SQL database historical data
+   Query: "What's the latency for api-gateway?"
+   → Tries REST API (empty/error)
+   → Orchestration decision: Switch to SQL database
+   → Returns historical data with disclaimer
+   ```
+
+2. **Context-Aware Tool Selection** (lines 424-468 in `agent/nodes.py`)
+   - "current latency" → REST API
+   - "average latency over past week" → SQL database
+   - "latency and how to improve" → REST API + Knowledge RAG
+   - CPU/Memory queries → ONLY SQL database (not in API)
+
+   ```python
+   # Smart routing prevents tool failures
+   Query: "Show me CPU usage for api-gateway"
+   → Orchestration: CPU only in database, skip API call
+   → Uses SQL database directly (saves API call)
+   ```
+
+3. **Off-Topic Query Detection** (lines 544-550, 1547-1578 in `agent/nodes.py`)
+   - Detects queries like "What's the weather?" or "Hello"
+   - **Skips all tools** (no wasted API calls)
+   - Returns friendly guidance message
+
+   ```python
+   # Before fix: wasted RAG API call on "Hi"
+   # After fix: skips all tools, returns guidance
+   Query: "Tell me a joke"
+   → Orchestration: Unknown intent, no tools needed
+   → Returns: "I'm a monitoring agent. I can help with..."
+   ```
+
+### 🔁 Confidence-Based Feedback Loops
+
+**What it does**: Evaluates results quality and decides whether to retry with different tools.
+
+**Real-world examples**:
+
+1. **Multi-Level Confidence Scoring** (lines 322-482 in `agent/nodes.py`)
+   - **HIGH (≥0.8)**: Proceed immediately
+   - **MEDIUM (0.6-0.8)**: Proceed with caveat note
+   - **LOW (<0.6)**: Trigger feedback loop (up to 2 retries)
+
+   ```python
+   # Confidence factors:
+   # - Intent classification confidence: 0.95
+   # - Tool success: +10% per successful tool
+   # - Tool failure: -20% per failed tool
+   # - Empty results: -50% completeness penalty
+   # - All sources empty: Forces confidence to 0.4 (triggers retry)
+   ```
+
+2. **Adaptive Retry Strategy** (lines 390-426 in `agent/nodes.py`)
+   - **Retry 1**: Try fallback tools suggested by aggregation layer
+   - **Retry 2**: Try different approach or ask for clarification
+   - **After 2 retries**: Proceed with LLM general knowledge + disclaimer
+
+   ```python
+   # Example feedback loop in action:
+   Iteration 0: Query "Show latency for unknown-service"
+   → Tools: [REST API]
+   → API returns: {"error": "Service not found"}
+   → Confidence: 0.4 (low)
+   → Feedback: Retry needed
+
+   Iteration 1: Retry with fallback
+   → Tools: [SQL database] (suggested by orchestration)
+   → Database: No matching records
+   → Confidence: 0.4 (low)
+   → Feedback: Max retries reached
+
+   Iteration 2: Final attempt
+   → Answer from LLM general knowledge
+   → Response: "Service 'unknown-service' not found. Available services: ..."
+   ```
+
+3. **Orchestration Decision Logging** (lines 555-567, 487-499 in `agent/nodes.py`)
+   - Every tool selection logged with reasoning
+   - Every retry logged with reason and suggested alternatives
+   - Complete visibility into agent's decision-making process
+
+   ```python
+   # Orchestration log example:
+   state["orchestration_log"] = [
+     {
+       "stage": "tool_selection",
+       "intent": "metrics_lookup",
+       "decision": "Selected 2 tool(s): query_metrics_api, query_sql_database",
+       "reasoning": "General metrics query - using both REST API (current) and SQL database (trends)",
+       "retry_iteration": 0,
+       "timestamp": "2025-10-17T..."
+     }
+   ]
+
+   state["feedback_iterations"] = [
+     {
+       "iteration": 1,
+       "reason": "empty_results_fallback",
+       "confidence_at_retry": 0.45,
+       "fallback_tools": ["query_sql_database"],
+       "timestamp": "2025-10-17T..."
+     }
+   ]
+   ```
+
+### 📊 Observability Dashboard
+
+All orchestration decisions and feedback iterations are visible in:
+- **Streamlit Agent Testing Tab**: Real-time decision timeline
+- **State Trace**: Complete `orchestration_log` and `feedback_iterations` arrays
+- **Node Durations**: Performance breakdown for each decision point
+
+**Try it**:
+```bash
+streamlit run streamlit_app.py
+# Navigate to Agent Testing → Try a complex query
+# View orchestration decisions in real-time
+```
+
+**Challenge Queries** (to see orchestration in action):
+```python
+# Triggers fallback routing
+"What is the latency for payment-service in the last 6 hours?"
+
+# Triggers multi-tool coordination
+"Show me CPU usage and explain how to optimize it"
+
+# Triggers off-topic detection
+"What's the weather like today?"
+
+# Triggers retry loop (if service doesn't exist)
+"Show metrics for nonexistent-service"
+```
+
+---
+
 ## ✨ Features
 
 ### Core Capabilities
@@ -43,14 +205,19 @@ This project demonstrates a sophisticated AI agent that:
 - ✅ **Inference Engine**: Threshold checks, service comparisons, trend analysis
 - ✅ **Feedback Loop**: Confidence-based retry (max 2 attempts, thresholds: 0.8 high, 0.6 medium)
 - ✅ **Complete Tracing**: Every decision, tool call, and state transition logged
+- ✅ **Trace Caching**: 24-hour persistent cache for traces across sessions
+- ✅ **API Testing Tab**: Interactive Swagger-like interface with prefilled parameters
+- ✅ **Enhanced Test Visibility**: Detailed execution traces in all test outputs
 
 ### Technical Highlights
 - **LangGraph** workflow orchestration with conditional edges
-- **OpenAI GPT-4.1-mini** for intent classification and NL-to-SQL 
+- **OpenAI GPT-4.1-mini** for intent classification and NL-to-SQL
 - **FAISS + BM25** hybrid search for document retrieval
 - **FastAPI** REST service with auto-generated OpenAPI docs
 - **SQLite** database with 840 rows of time-series metrics
-- **LangSmith** integration ready for advanced tracing
+- **LangSmith** integration with real-time API fetching and trace caching
+- **Trace Display Utilities** for comprehensive test execution visualization
+- **Auto-Population** of traces from LangSmith API on Streamlit startup
 
 ---
 
@@ -167,15 +334,17 @@ for event in result['trace']:
 streamlit run streamlit_app.py
 ```
 
-**Features**:
-- 🏠 **Dashboard** - System status and metrics overview
+**Features** (10 tabs):
+- 🏠 **Home** - System status and metrics overview with trace auto-population summary
 - 📚 **Documentation** - Complete usage guide and API reference
-- 🤖 **Agent Testing** - Interactive query interface with history
-- 🔍 **RAG Explorer** - Search knowledge base and browse documents
-- 💾 **SQL Viewer** - Query database with natural language or SQL
-- 🧪 **Test Runner** - Run and view test results
-- 🎮 **Demo Runner** - Execute demo scripts
-- 🔀 **Workflow Viz** - Visualize agent routing and execution flow
+- 🌐 **API Testing** - Interactive Swagger-like interface with prefilled parameters (zero-configuration)
+- 🤖 **Agent Testing** - Interactive query interface with execution history
+- 🔍 **RAG Service** - Search knowledge base and browse documents
+- 💾 **SQL Database** - Query database with natural language or SQL
+- 🧪 **Tests** - Run and view test results with detailed execution traces
+- 🎮 **Demos** - Execute demo scripts with live output
+- 🔀 **Workflow** - Visualize agent routing and execution flow
+- 📡 **Observability** - LangSmith trace fetching, cache management, and tracing dashboard
 
 Access at: http://localhost:8501 (auto-opens in browser)
 
@@ -197,7 +366,7 @@ agent_poc/
 ├── agent/                      # Core agent implementation (1,948 lines)
 │   ├── __init__.py             # Package exports
 │   ├── graph.py                # LangGraph workflow definition
-│   ├── nodes.py                # 7 node implementations
+│   ├── nodes.py                # 7 node implementations (enhanced intent classification)
 │   ├── state.py                # AgentState schema with 40+ fields
 │   ├── tools.py                # 4 tool definitions
 │   └── README.md               # Agent documentation
@@ -210,24 +379,32 @@ agent_poc/
 │   ├── README_DB.md            # Database documentation
 │   └── README_RAG.md           # RAG documentation
 │
+├── utils/                      # Utility modules (NEW - 799 lines)
+│   ├── trace_cache.py          # 24-hour trace caching system (387 lines)
+│   └── trace_display.py        # Test trace visualization utilities (412 lines)
+│
 ├── data/                       # Data files
-│   ├── docs/                   # 5 markdown documents (3,795 lines)
-│   │   ├── architecture.md
+│   ├── docs/                   # 5 markdown documents (5,435 lines)
+│   │   ├── architecture.md     # Complete system architecture (1,640 lines)
 │   │   ├── api_guide.md
 │   │   ├── troubleshooting.md
 │   │   ├── deployment.md
 │   │   └── monitoring.md
 │   ├── metrics.db              # SQLite database (840 rows, 192KB)
-│   └── embeddings/             # FAISS cache (auto-generated)
+│   ├── embeddings/             # FAISS cache (auto-generated)
+│   └── trace_cache/            # Trace cache directory (24-hour lifetime)
 │
-├── test/                       # Test suite (10 test files)
+├── test/                       # Test suite (13 test files, 41 tests)
 │   ├── test_agent.py           # Agent workflow tests
 │   ├── test_rag_service.py     # RAG tests
 │   ├── test_tools.py           # Tool tests
-│   ├── test_individual_tools.py    # Individual tool validation
-│   ├── test_end_to_end.py      # End-to-end workflow tests
-│   ├── test_feedback_loop.py   # Feedback loop tests
-│   ├── verify_documentation.py # Documentation verification
+│   ├── test_individual_tools.py    # Individual tool validation (18 checks)
+│   ├── test_end_to_end.py      # End-to-end workflow tests (8 scenarios)
+│   ├── test_feedback_loop.py   # Feedback loop tests (8 checks, enhanced tracing)
+│   ├── test_orchestration.py   # Orchestration decision tests (enhanced tracing)
+│   ├── test_trace_cache.py     # Trace caching system tests (6 tests)
+│   ├── test_api_endpoints.py   # API endpoint validation (5 endpoints)
+│   ├── verify_documentation.py # Documentation verification (9 checks)
 │   ├── validate_api_service.py # API validation
 │   └── validate_db_service.py  # Database validation
 │
@@ -236,7 +413,7 @@ agent_poc/
 │   └── demo_rag.py             # RAG initialization demo
 │
 ├── main.py                     # Interactive CLI interface
-├── streamlit_app.py            # Streamlit web UI (comprehensive dashboard)
+├── streamlit_app.py            # Streamlit web UI (10 tabs, 4,400+ lines)
 ├── start_api_server.py         # System startup (single entry point)
 ├── requirements.txt            # All dependencies
 ├── .env                        # Environment configuration (user-created)
@@ -390,9 +567,10 @@ result = run_agent("What was the average CPU usage for api-gateway over the past
 ## 🧪 Testing
 
 ### Test Coverage
-- ✅ **43 individual checks** across 4 test suites
+- ✅ **41+ individual checks** across 13 test files
 - ✅ **100% success rate** in all tests
-- ✅ All intent types, workflows, feedback loops verified
+- ✅ All intent types, workflows, feedback loops, caching, and API endpoints verified
+- ✅ **Enhanced trace visibility** - all tests show detailed execution traces
 
 ### Run Tests
 
@@ -403,8 +581,17 @@ python test/test_individual_tools.py
 # End-to-end workflow tests (8 scenarios)
 python test/test_end_to_end.py
 
-# Feedback loop tests (8 checks)
+# Feedback loop tests (8 checks, with detailed trace output)
 python test/test_feedback_loop.py
+
+# Orchestration decision tests (with detailed trace output)
+python test/test_orchestration.py
+
+# Trace caching system tests (6 tests)
+python test/test_trace_cache.py
+
+# API endpoint validation (5 endpoints with prefilled parameters)
+python test/test_api_endpoints.py
 
 # Documentation verification (9 checks)
 python test/verify_documentation.py
@@ -423,6 +610,15 @@ python test/validate_api_service.py
 
 # Database tests
 python test/validate_db_service.py
+```
+
+**Trace Display Control**:
+```bash
+# Show detailed traces (default)
+SHOW_TRACES=true python test/test_feedback_loop.py
+
+# Hide traces
+SHOW_TRACES=false python test/test_feedback_loop.py
 ```
 
 ---
@@ -451,6 +647,36 @@ for node, duration_ms in result['node_durations'].items():
 print(f"Total: {result['total_duration_ms']:.0f}ms")
 ```
 
+### Trace Caching System (NEW)
+
+Persistent 24-hour cache for all execution traces:
+
+```python
+from utils.trace_cache import (
+    get_agent_executions,      # Load cached agent executions
+    cache_agent_execution,     # Cache a new execution
+    get_langsmith_traces,      # Get LangSmith traces (cached or API)
+    auto_populate_traces,      # Auto-load all traces
+    get_cache_status,          # Check cache status
+    refresh_langsmith_cache    # Force refresh from API
+)
+
+# Auto-populated on Streamlit startup
+summary = auto_populate_traces()
+print(f"Loaded {summary['total']} traces from cache")
+
+# Check cache status
+status = get_cache_status()
+for name, info in status.items():
+    print(f"{name}: {'valid' if info['valid'] else 'expired'}")
+```
+
+**Features**:
+- 24-hour automatic expiration
+- Multiple sources: LangSmith API, agent executions, demos, tests
+- Auto-population on Streamlit app startup
+- Cache status reporting and manual refresh
+
 ### LangSmith Integration
 
 Enable advanced tracing with LangSmith:
@@ -466,6 +692,26 @@ All agent runs will automatically appear in LangSmith dashboard with:
 - Tool inputs/outputs
 - Error tracking
 - Performance metrics
+
+**Real-time API Fetching**:
+- Streamlit Observability tab fetches latest traces from LangSmith API
+- Caches traces locally for 24 hours
+- View traces directly in the dashboard without leaving the app
+- Direct links to LangSmith platform for detailed inspection
+
+### API Testing Tab (NEW)
+
+Interactive Swagger-like interface in Streamlit:
+
+**Features**:
+- Zero-configuration testing with prefilled parameters
+- 5 REST API endpoints (latency, throughput, errors, health, services)
+- Live URL preview before execution
+- Visual metrics cards for responses
+- Copy-paste cURL and Python examples
+- Real-time response time measurement
+
+**Access**: `streamlit run streamlit_app.py` → Navigate to "API Testing" tab
 
 ### OpenTelemetry Support
 
@@ -500,9 +746,20 @@ EMBEDDINGS_PATH=data/embeddings
 MAX_RETRIES=2
 CONFIDENCE_HIGH=0.8
 CONFIDENCE_MEDIUM=0.6
+
+# Optional - Test Configuration
+SHOW_TRACES=true  # Show detailed execution traces in test output
 ```
 
 **Note**: All Python entry points (`main.py`, `streamlit_app.py`, agent modules, services) use `load_dotenv(override=True)` to ensure the `.env` file always takes precedence.
+
+### Trace Caching Configuration
+
+Trace caching is automatically enabled with default settings:
+- **Cache Lifetime**: 24 hours (configurable in `utils/trace_cache.py`)
+- **Cache Location**: `data/trace_cache/` (auto-created)
+- **Auto-Population**: Enabled on Streamlit startup
+- **Sources**: LangSmith API, agent executions, demos, tests
 
 ### Confidence Thresholds
 
@@ -521,13 +778,22 @@ CONFIDENCE_MEDIUM=0.6
 ## 📚 Documentation
 
 ### Core Documentation
-- **[README.md](README.md)** - This file (comprehensive guide)
-- **[agent/README.md](agent/README.md)** - Agent architecture and workflow
+- **[README.md](README.md)** - This file (comprehensive guide with quick start)
+- **[data/docs/architecture.md](data/docs/architecture.md)** - Complete system architecture (1,640 lines)
+  - Module-by-module breakdown with line numbers
+  - Every file documented with purpose, functionality, and code snippets
+  - Data flow diagrams and end-to-end examples
+  - Observability, testing, and deployment guides
+- **[agent/README.md](agent/README.md)** - Agent architecture and workflow details
 
 ### Service Documentation
 - **[services/README_API.md](services/README_API.md)** - API endpoints and usage
 - **[services/README_DB.md](services/README_DB.md)** - Database schema and queries
 - **[services/README_RAG.md](services/README_RAG.md)** - RAG service and search
+
+### Utility Documentation
+- **[utils/trace_cache.py](utils/trace_cache.py)** - Trace caching system (inline documentation)
+- **[utils/trace_display.py](utils/trace_display.py)** - Test trace visualization (inline documentation)
 
 ---
 
@@ -587,14 +853,23 @@ pip install -r requirements.txt
 
 
 
-### Potential Improvements
-1. **Logging**: Replace print statements with structured logging framework
-2. **Caching**: Implement query caching for repeated requests
-3. **Streaming**: Add streaming responses for better UX
-4. **Sessions**: Multi-turn conversation support
-5. **Rate Limiting**: Add OpenAI API rate limiting
-6. **Docker**: Containerization for easy deployment
-7. **CI/CD**: Automated testing pipeline
+### Recent Improvements (Implemented)
+1. ✅ **Trace Caching**: 24-hour persistent cache with auto-population
+2. ✅ **API Testing Interface**: Swagger-like UI with prefilled parameters
+3. ✅ **Enhanced Test Visibility**: Detailed execution traces in all test outputs
+4. ✅ **LangSmith API Integration**: Real-time trace fetching and caching
+5. ✅ **Intent Classification Guardrails**: Improved classification with reasonable defaults
+6. ✅ **Comprehensive Architecture Docs**: 1,640-line architecture documentation
+
+### Future Enhancements
+1. **Logging**: Replace print statements with structured logging framework (e.g., loguru)
+2. **Query Caching**: Cache agent responses for repeated/similar queries
+3. **Streaming**: Add streaming responses for better UX with SSE or WebSockets
+4. **Sessions**: Multi-turn conversation support with context management
+5. **Rate Limiting**: Add OpenAI API rate limiting and retry logic
+6. **Docker**: Containerization for easy deployment with docker-compose
+7. **CI/CD**: Automated testing pipeline with GitHub Actions
 8. **Benchmarks**: Performance profiling and optimization
-9. **Additional Tools**: Web search, code execution, etc.
+9. **Additional Tools**: Web search, code execution, file system access
+10. **MCP Server**: Model Context Protocol server for fallback tools
 

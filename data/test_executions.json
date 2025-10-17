@@ -1,0 +1,2089 @@
+[
+  {
+    "query": "What's the weather like today?",
+    "result": {
+      "query": "What's the weather like today?",
+      "session_id": "session_20251017_132332",
+      "intent": "unknown",
+      "intent_confidence": 0.98,
+      "tools_to_use": [],
+      "tool_selection_reasoning": "Query is unrelated to monitoring/metrics - no tools needed (will provide friendly guidance message)",
+      "tool_outputs": {},
+      "tool_errors": {},
+      "tools_executed": [],
+      "aggregated_data": {
+        "metrics": {},
+        "knowledge": [],
+        "calculations": {},
+        "errors": []
+      },
+      "data_quality": {
+        "completeness": 1.0,
+        "consistency": 1.0,
+        "issues": []
+      },
+      "inference_result": {},
+      "inference_type": "none",
+      "findings": [
+        "Analysis complete - no issues detected"
+      ],
+      "recommendations": [],
+      "confidence": 0.98,
+      "feedback_needed": false,
+      "retry_count": 0,
+      "retry_reason": null,
+      "clarification_question": null,
+      "orchestration_log": [
+        {
+          "stage": "tool_selection",
+          "intent": "unknown",
+          "decision": "Selected 0 tool(s): none",
+          "reasoning": "Query is unrelated to monitoring/metrics - no tools needed (will provide friendly guidance message)",
+          "retry_iteration": 0,
+          "timestamp": "2025-10-17T13:23:33.764433"
+        }
+      ],
+      "feedback_iterations": [
+        {
+          "iteration": 1,
+          "reason": "unknown_intent_llm_fallback",
+          "intent": "unknown",
+          "confidence_at_feedback": 0.98,
+          "action": "using_llm_general_knowledge",
+          "tools_used": [],
+          "timestamp": "2025-10-17T13:23:33.769113"
+        }
+      ],
+      "off_topic_query": true,
+      "final_answer": "\u26a0\ufe0f **Note: Query appears outside monitoring/metrics domain**\n\n_Attempting to answer using general AI knowledge (no specialized tools used)_\n\n---\n\nI don't have access to real-time weather data. You can check the current weather using a weather website or app like Weather.com, AccuWeather, or your device's built-in weather service. Let me know if you need tips on how to find reliable weather information!\n\n---\n\n**\ud83d\udca1 For monitoring-specific queries, I can help with:**\n- Service Metrics (latency, errors, throughput, health)\n- Historical Data (CPU, memory, trends over time)\n- Documentation (how-to guides, troubleshooting)\n- Calculations (averages, comparisons, percentages)\n",
+      "answer_format": "markdown",
+      "trace": [
+        {
+          "timestamp": "2025-10-17T13:23:32.138344",
+          "node": "classify_intent",
+          "event_type": "node_start",
+          "data": {
+            "query": "What's the weather like today?"
+          }
+        },
+        {
+          "timestamp": "2025-10-17T13:23:33.763273",
+          "node": "classify_intent",
+          "event_type": "classification",
+          "data": {
+            "intent": "unknown",
+            "confidence": 0.98,
+            "reasoning": "Weather query - completely unrelated to monitoring/metrics domain. No monitoring keywords present. Will use LLM fallback to provide friendly response."
+          }
+        },
+        {
+          "timestamp": "2025-10-17T13:23:33.763283",
+          "node": "classify_intent",
+          "event_type": "node_end",
+          "data": {
+            "duration_ms": 1624.939203262329
+          }
+        },
+        {
+          "timestamp": "2025-10-17T13:23:33.764425",
+          "node": "select_tools",
+          "event_type": "node_start",
+          "data": {
+            "intent": "unknown"
+          }
+        },
+        {
+          "timestamp": "2025-10-17T13:23:33.764435",
+          "node": "select_tools",
+          "event_type": "tools_selected",
+          "data": {
+            "tools": [],
+            "reasoning": "Query is unrelated to monitoring/metrics - no tools needed (will provide friendly guidance message)"
+          }
+        },
+        {
+          "timestamp": "2025-10-17T13:23:33.764438",
+          "node": "select_tools",
+          "event_type": "node_end",
+          "data": {
+            "duration_ms": 0.013589859008789062
+          }
+        },
+        {
+          "timestamp": "2025-10-17T13:23:33.765320",
+          "node": "execute_tools",
+          "event_type": "node_start",
+          "data": {
+            "tools_count": 0
+          }
+        },
+        {
+          "timestamp": "2025-10-17T13:23:33.765326",
+          "node": "execute_tools",
+          "event_type": "node_end",
+          "data": {
+            "duration_ms": 0.0064373016357421875,
+            "tools_executed": 0,
+            "tools_failed": 0
+          }
+        },
+        {
+          "timestamp": "2025-10-17T13:23:33.766097",
+          "node": "aggregate_results",
+          "event_type": "node_start",
+          "data": {}
+        },
+        {
+          "timestamp": "2025-10-17T13:23:33.766106",
+          "node": "aggregate_results",
+          "event_type": "aggregation_complete",
+          "data": {
+            "metrics_sources": 0,
+            "knowledge_results": 0,
+            "data_quality": {
+              "completeness": 1.0,
+              "consistency": 1.0,
+              "issues": []
+            }
+          }
+        },
+        {
+          "timestamp": "2025-10-17T13:23:33.766109",
+          "node": "aggregate_results",
+          "event_type": "node_end",
+          "data": {
+            "duration_ms": 0.011682510375976562
+          }
+        },
+        {
+          "timestamp": "2025-10-17T13:23:33.766884",
+          "node": "perform_inference",
+          "event_type": "node_start",
+          "data": {
+            "intent": "unknown"
+          }
+        },
+        {
+          "timestamp": "2025-10-17T13:23:33.766891",
+          "node": "perform_inference",
+          "event_type": "inference_complete",
+          "data": {
+            "inference_type": "none",
+            "findings_count": 1,
+            "recommendations_count": 0
+          }
+        },
+        {
+          "timestamp": "2025-10-17T13:23:33.766893",
+          "node": "perform_inference",
+          "event_type": "node_end",
+          "data": {
+            "duration_ms": 0.010251998901367188
+          }
+        },
+        {
+          "timestamp": "2025-10-17T13:23:33.767697",
+          "node": "check_feedback",
+          "event_type": "node_start",
+          "data": {
+            "confidence": 0.98,
+            "retry_count": 0
+          }
+        },
+        {
+          "timestamp": "2025-10-17T13:23:33.767703",
+          "node": "check_feedback",
+          "event_type": "high_confidence",
+          "data": {
+            "confidence": 0.98
+          }
+        },
+        {
+          "timestamp": "2025-10-17T13:23:33.767706",
+          "node": "check_feedback",
+          "event_type": "node_end",
+          "data": {
+            "duration_ms": 0.009059906005859375,
+            "feedback_needed": false,
+            "retry_reason": null
+          }
+        },
+        {
+          "timestamp": "2025-10-17T13:23:33.769107",
+          "node": "format_response",
+          "event_type": "node_start",
+          "data": {}
+        },
+        {
+          "timestamp": "2025-10-17T13:23:33.769115",
+          "node": "format_response",
+          "event_type": "unknown_feedback_logged",
+          "data": {
+            "reason": "Out-of-domain query using LLM fallback - automatic feedback loop"
+          }
+        },
+        {
+          "timestamp": "2025-10-17T13:23:33.769117",
+          "node": "format_response",
+          "event_type": "llm_fallback_triggered",
+          "data": {
+            "reason": "Query unrelated to monitoring/metrics - attempting LLM general knowledge"
+          }
+        },
+        {
+          "timestamp": "2025-10-17T13:23:35.041767",
+          "node": "format_response",
+          "event_type": "llm_fallback_success",
+          "data": {
+            "answer_length": 259
+          }
+        },
+        {
+          "timestamp": "2025-10-17T13:23:35.041792",
+          "node": "format_response",
+          "event_type": "node_end",
+          "data": {
+            "duration_ms": 1272.6845741271973
+          }
+        }
+      ],
+      "start_time": "2025-10-17T13:23:32.137180",
+      "end_time": "2025-10-17T13:23:35.041783",
+      "total_duration_ms": 2904.6029999999996,
+      "node_durations": {
+        "classify_intent": 1624.939203262329,
+        "select_tools": 0.013589859008789062,
+        "execute_tools": 0.0064373016357421875,
+        "aggregate_results": 0.011682510375976562,
+        "perform_inference": 0.010251998901367188,
+        "check_feedback": 0.009059906005859375,
+        "format_response": 1272.6845741271973
+      },
+      "trace_id": "trace_session_20251017_132332",
+      "span_id": "",
+      "parent_span_id": null
+    },
+    "timestamp": "2025-10-17 13:23:35",
+    "test_name": "Unknown Intent Feedback"
+  },
+  {
+    "query": "Hello! How are you?",
+    "result": {
+      "query": "Hello! How are you?",
+      "session_id": "session_20251017_132335",
+      "intent": "unknown",
+      "intent_confidence": 0.95,
+      "tools_to_use": [],
+      "tool_selection_reasoning": "Query is unrelated to monitoring/metrics - no tools needed (will provide friendly guidance message)",
+      "tool_outputs": {},
+      "tool_errors": {},
+      "tools_executed": [],
+      "aggregated_data": {
+        "metrics": {},
+        "knowledge": [],
+        "calculations": {},
+        "errors": []
+      },
+      "data_quality": {
+        "completeness": 1.0,
+        "consistency": 1.0,
+        "issues": []
+      },
+      "inference_result": {},
+      "inference_type": "none",
+      "findings": [
+        "Analysis complete - no issues detected"
+      ],
+      "recommendations": [],
+      "confidence": 0.95,
+      "feedback_needed": false,
+      "retry_count": 0,
+      "retry_reason": null,
+      "clarification_question": null,
+      "orchestration_log": [
+        {
+          "stage": "tool_selection",
+          "intent": "unknown",
+          "decision": "Selected 0 tool(s): none",
+          "reasoning": "Query is unrelated to monitoring/metrics - no tools needed (will provide friendly guidance message)",
+          "retry_iteration": 0,
+          "timestamp": "2025-10-17T13:23:37.478748"
+        }
+      ],
+      "feedback_iterations": [
+        {
+          "iteration": 1,
+          "reason": "unknown_intent_llm_fallback",
+          "intent": "unknown",
+          "confidence_at_feedback": 0.95,
+          "action": "using_llm_general_knowledge",
+          "tools_used": [],
+          "timestamp": "2025-10-17T13:23:37.483473"
+        }
+      ],
+      "off_topic_query": true,
+      "final_answer": "\u26a0\ufe0f **Note: Query appears outside monitoring/metrics domain**\n\n_Attempting to answer using general AI knowledge (no specialized tools used)_\n\n---\n\nHello! I'm just a virtual assistant, so I don't have feelings, but I'm here and ready to help you. How can I assist you today?\n\n---\n\n**\ud83d\udca1 For monitoring-specific queries, I can help with:**\n- Service Metrics (latency, errors, throughput, health)\n- Historical Data (CPU, memory, trends over time)\n- Documentation (how-to guides, troubleshooting)\n- Calculations (averages, comparisons, percentages)\n",
+      "answer_format": "markdown",
+      "trace": [
+        {
+          "timestamp": "2025-10-17T13:23:35.045393",
+          "node": "classify_intent",
+          "event_type": "node_start",
+          "data": {
+            "query": "Hello! How are you?"
+          }
+        },
+        {
+          "timestamp": "2025-10-17T13:23:37.477693",
+          "node": "classify_intent",
+          "event_type": "classification",
+          "data": {
+            "intent": "unknown",
+            "confidence": 0.95,
+            "reasoning": "Greeting with no monitoring keywords - completely unrelated to monitoring/metrics domain"
+          }
+        },
+        {
+          "timestamp": "2025-10-17T13:23:37.477710",
+          "node": "classify_intent",
+          "event_type": "node_end",
+          "data": {
+            "duration_ms": 2432.3182106018066
+          }
+        },
+        {
+          "timestamp": "2025-10-17T13:23:37.478741",
+          "node": "select_tools",
+          "event_type": "node_start",
+          "data": {
+            "intent": "unknown"
+          }
+        },
+        {
+          "timestamp": "2025-10-17T13:23:37.478750",
+          "node": "select_tools",
+          "event_type": "tools_selected",
+          "data": {
+            "tools": [],
+            "reasoning": "Query is unrelated to monitoring/metrics - no tools needed (will provide friendly guidance message)"
+          }
+        },
+        {
+          "timestamp": "2025-10-17T13:23:37.478752",
+          "node": "select_tools",
+          "event_type": "node_end",
+          "data": {
+            "duration_ms": 0.011682510375976562
+          }
+        },
+        {
+          "timestamp": "2025-10-17T13:23:37.479640",
+          "node": "execute_tools",
+          "event_type": "node_start",
+          "data": {
+            "tools_count": 0
+          }
+        },
+        {
+          "timestamp": "2025-10-17T13:23:37.479647",
+          "node": "execute_tools",
+          "event_type": "node_end",
+          "data": {
+            "duration_ms": 0.0069141387939453125,
+            "tools_executed": 0,
+            "tools_failed": 0
+          }
+        },
+        {
+          "timestamp": "2025-10-17T13:23:37.480451",
+          "node": "aggregate_results",
+          "event_type": "node_start",
+          "data": {}
+        },
+        {
+          "timestamp": "2025-10-17T13:23:37.480463",
+          "node": "aggregate_results",
+          "event_type": "aggregation_complete",
+          "data": {
+            "metrics_sources": 0,
+            "knowledge_results": 0,
+            "data_quality": {
+              "completeness": 1.0,
+              "consistency": 1.0,
+              "issues": []
+            }
+          }
+        },
+        {
+          "timestamp": "2025-10-17T13:23:37.480465",
+          "node": "aggregate_results",
+          "event_type": "node_end",
+          "data": {
+            "duration_ms": 0.014543533325195312
+          }
+        },
+        {
+          "timestamp": "2025-10-17T13:23:37.481279",
+          "node": "perform_inference",
+          "event_type": "node_start",
+          "data": {
+            "intent": "unknown"
+          }
+        },
+        {
+          "timestamp": "2025-10-17T13:23:37.481288",
+          "node": "perform_inference",
+          "event_type": "inference_complete",
+          "data": {
+            "inference_type": "none",
+            "findings_count": 1,
+            "recommendations_count": 0
+          }
+        },
+        {
+          "timestamp": "2025-10-17T13:23:37.481290",
+          "node": "perform_inference",
+          "event_type": "node_end",
+          "data": {
+            "duration_ms": 0.010967254638671875
+          }
+        },
+        {
+          "timestamp": "2025-10-17T13:23:37.482133",
+          "node": "check_feedback",
+          "event_type": "node_start",
+          "data": {
+            "confidence": 0.95,
+            "retry_count": 0
+          }
+        },
+        {
+          "timestamp": "2025-10-17T13:23:37.482140",
+          "node": "check_feedback",
+          "event_type": "high_confidence",
+          "data": {
+            "confidence": 0.95
+          }
+        },
+        {
+          "timestamp": "2025-10-17T13:23:37.482143",
+          "node": "check_feedback",
+          "event_type": "node_end",
+          "data": {
+            "duration_ms": 0.011682510375976562,
+            "feedback_needed": false,
+            "retry_reason": null
+          }
+        },
+        {
+          "timestamp": "2025-10-17T13:23:37.483467",
+          "node": "format_response",
+          "event_type": "node_start",
+          "data": {}
+        },
+        {
+          "timestamp": "2025-10-17T13:23:37.483475",
+          "node": "format_response",
+          "event_type": "unknown_feedback_logged",
+          "data": {
+            "reason": "Out-of-domain query using LLM fallback - automatic feedback loop"
+          }
+        },
+        {
+          "timestamp": "2025-10-17T13:23:37.483477",
+          "node": "format_response",
+          "event_type": "llm_fallback_triggered",
+          "data": {
+            "reason": "Query unrelated to monitoring/metrics - attempting LLM general knowledge"
+          }
+        },
+        {
+          "timestamp": "2025-10-17T13:23:38.804648",
+          "node": "format_response",
+          "event_type": "llm_fallback_success",
+          "data": {
+            "answer_length": 126
+          }
+        },
+        {
+          "timestamp": "2025-10-17T13:23:38.804665",
+          "node": "format_response",
+          "event_type": "node_end",
+          "data": {
+            "duration_ms": 1321.1982250213623
+          }
+        }
+      ],
+      "start_time": "2025-10-17T13:23:35.043807",
+      "end_time": "2025-10-17T13:23:38.804657",
+      "total_duration_ms": 3760.85,
+      "node_durations": {
+        "classify_intent": 2432.3182106018066,
+        "select_tools": 0.011682510375976562,
+        "execute_tools": 0.0069141387939453125,
+        "aggregate_results": 0.014543533325195312,
+        "perform_inference": 0.010967254638671875,
+        "check_feedback": 0.011682510375976562,
+        "format_response": 1321.1982250213623
+      },
+      "trace_id": "trace_session_20251017_132335",
+      "span_id": "",
+      "parent_span_id": null
+    },
+    "timestamp": "2025-10-17 13:23:38",
+    "test_name": "Unknown Intent Feedback"
+  },
+  {
+    "query": "Tell me a joke",
+    "result": {
+      "query": "Tell me a joke",
+      "session_id": "session_20251017_132338",
+      "intent": "unknown",
+      "intent_confidence": 0.99,
+      "tools_to_use": [],
+      "tool_selection_reasoning": "Query is unrelated to monitoring/metrics - no tools needed (will provide friendly guidance message)",
+      "tool_outputs": {},
+      "tool_errors": {},
+      "tools_executed": [],
+      "aggregated_data": {
+        "metrics": {},
+        "knowledge": [],
+        "calculations": {},
+        "errors": []
+      },
+      "data_quality": {
+        "completeness": 1.0,
+        "consistency": 1.0,
+        "issues": []
+      },
+      "inference_result": {},
+      "inference_type": "none",
+      "findings": [
+        "Analysis complete - no issues detected"
+      ],
+      "recommendations": [],
+      "confidence": 0.99,
+      "feedback_needed": false,
+      "retry_count": 0,
+      "retry_reason": null,
+      "clarification_question": null,
+      "orchestration_log": [
+        {
+          "stage": "tool_selection",
+          "intent": "unknown",
+          "decision": "Selected 0 tool(s): none",
+          "reasoning": "Query is unrelated to monitoring/metrics - no tools needed (will provide friendly guidance message)",
+          "retry_iteration": 0,
+          "timestamp": "2025-10-17T13:23:40.285806"
+        }
+      ],
+      "feedback_iterations": [
+        {
+          "iteration": 1,
+          "reason": "unknown_intent_llm_fallback",
+          "intent": "unknown",
+          "confidence_at_feedback": 0.99,
+          "action": "using_llm_general_knowledge",
+          "tools_used": [],
+          "timestamp": "2025-10-17T13:23:40.290116"
+        }
+      ],
+      "off_topic_query": true,
+      "final_answer": "\u26a0\ufe0f **Note: Query appears outside monitoring/metrics domain**\n\n_Attempting to answer using general AI knowledge (no specialized tools used)_\n\n---\n\nSure! Here's a light one for you: Why don't scientists trust atoms? Because they make up everything!\n\n---\n\n**\ud83d\udca1 For monitoring-specific queries, I can help with:**\n- Service Metrics (latency, errors, throughput, health)\n- Historical Data (CPU, memory, trends over time)\n- Documentation (how-to guides, troubleshooting)\n- Calculations (averages, comparisons, percentages)\n",
+      "answer_format": "markdown",
+      "trace": [
+        {
+          "timestamp": "2025-10-17T13:23:38.808368",
+          "node": "classify_intent",
+          "event_type": "node_start",
+          "data": {
+            "query": "Tell me a joke"
+          }
+        },
+        {
+          "timestamp": "2025-10-17T13:23:40.284771",
+          "node": "classify_intent",
+          "event_type": "classification",
+          "data": {
+            "intent": "unknown",
+            "confidence": 0.99,
+            "reasoning": "Query is a request for a joke with no monitoring or metrics keywords present, completely unrelated to monitoring domain."
+          }
+        },
+        {
+          "timestamp": "2025-10-17T13:23:40.284782",
+          "node": "classify_intent",
+          "event_type": "node_end",
+          "data": {
+            "duration_ms": 1476.414680480957
+          }
+        },
+        {
+          "timestamp": "2025-10-17T13:23:40.285800",
+          "node": "select_tools",
+          "event_type": "node_start",
+          "data": {
+            "intent": "unknown"
+          }
+        },
+        {
+          "timestamp": "2025-10-17T13:23:40.285809",
+          "node": "select_tools",
+          "event_type": "tools_selected",
+          "data": {
+            "tools": [],
+            "reasoning": "Query is unrelated to monitoring/metrics - no tools needed (will provide friendly guidance message)"
+          }
+        },
+        {
+          "timestamp": "2025-10-17T13:23:40.285811",
+          "node": "select_tools",
+          "event_type": "node_end",
+          "data": {
+            "duration_ms": 0.011682510375976562
+          }
+        },
+        {
+          "timestamp": "2025-10-17T13:23:40.286528",
+          "node": "execute_tools",
+          "event_type": "node_start",
+          "data": {
+            "tools_count": 0
+          }
+        },
+        {
+          "timestamp": "2025-10-17T13:23:40.286534",
+          "node": "execute_tools",
+          "event_type": "node_end",
+          "data": {
+            "duration_ms": 0.0059604644775390625,
+            "tools_executed": 0,
+            "tools_failed": 0
+          }
+        },
+        {
+          "timestamp": "2025-10-17T13:23:40.287261",
+          "node": "aggregate_results",
+          "event_type": "node_start",
+          "data": {}
+        },
+        {
+          "timestamp": "2025-10-17T13:23:40.287270",
+          "node": "aggregate_results",
+          "event_type": "aggregation_complete",
+          "data": {
+            "metrics_sources": 0,
+            "knowledge_results": 0,
+            "data_quality": {
+              "completeness": 1.0,
+              "consistency": 1.0,
+              "issues": []
+            }
+          }
+        },
+        {
+          "timestamp": "2025-10-17T13:23:40.287272",
+          "node": "aggregate_results",
+          "event_type": "node_end",
+          "data": {
+            "duration_ms": 0.012159347534179688
+          }
+        },
+        {
+          "timestamp": "2025-10-17T13:23:40.288002",
+          "node": "perform_inference",
+          "event_type": "node_start",
+          "data": {
+            "intent": "unknown"
+          }
+        },
+        {
+          "timestamp": "2025-10-17T13:23:40.288008",
+          "node": "perform_inference",
+          "event_type": "inference_complete",
+          "data": {
+            "inference_type": "none",
+            "findings_count": 1,
+            "recommendations_count": 0
+          }
+        },
+        {
+          "timestamp": "2025-10-17T13:23:40.288010",
+          "node": "perform_inference",
+          "event_type": "node_end",
+          "data": {
+            "duration_ms": 0.00858306884765625
+          }
+        },
+        {
+          "timestamp": "2025-10-17T13:23:40.288771",
+          "node": "check_feedback",
+          "event_type": "node_start",
+          "data": {
+            "confidence": 0.99,
+            "retry_count": 0
+          }
+        },
+        {
+          "timestamp": "2025-10-17T13:23:40.288776",
+          "node": "check_feedback",
+          "event_type": "high_confidence",
+          "data": {
+            "confidence": 0.99
+          }
+        },
+        {
+          "timestamp": "2025-10-17T13:23:40.288779",
+          "node": "check_feedback",
+          "event_type": "node_end",
+          "data": {
+            "duration_ms": 0.009059906005859375,
+            "feedback_needed": false,
+            "retry_reason": null
+          }
+        },
+        {
+          "timestamp": "2025-10-17T13:23:40.290110",
+          "node": "format_response",
+          "event_type": "node_start",
+          "data": {}
+        },
+        {
+          "timestamp": "2025-10-17T13:23:40.290126",
+          "node": "format_response",
+          "event_type": "unknown_feedback_logged",
+          "data": {
+            "reason": "Out-of-domain query using LLM fallback - automatic feedback loop"
+          }
+        },
+        {
+          "timestamp": "2025-10-17T13:23:40.290129",
+          "node": "format_response",
+          "event_type": "llm_fallback_triggered",
+          "data": {
+            "reason": "Query unrelated to monitoring/metrics - attempting LLM general knowledge"
+          }
+        },
+        {
+          "timestamp": "2025-10-17T13:23:41.089024",
+          "node": "format_response",
+          "event_type": "llm_fallback_success",
+          "data": {
+            "answer_length": 100
+          }
+        },
+        {
+          "timestamp": "2025-10-17T13:23:41.089047",
+          "node": "format_response",
+          "event_type": "node_end",
+          "data": {
+            "duration_ms": 798.9375591278076
+          }
+        }
+      ],
+      "start_time": "2025-10-17T13:23:38.806406",
+      "end_time": "2025-10-17T13:23:41.089039",
+      "total_duration_ms": 2282.6330000000003,
+      "node_durations": {
+        "classify_intent": 1476.414680480957,
+        "select_tools": 0.011682510375976562,
+        "execute_tools": 0.0059604644775390625,
+        "aggregate_results": 0.012159347534179688,
+        "perform_inference": 0.00858306884765625,
+        "check_feedback": 0.009059906005859375,
+        "format_response": 798.9375591278076
+      },
+      "trace_id": "trace_session_20251017_132338",
+      "span_id": "",
+      "parent_span_id": null
+    },
+    "timestamp": "2025-10-17 13:23:41",
+    "test_name": "Unknown Intent Feedback"
+  },
+  {
+    "query": "Show me the latency",
+    "result": {
+      "query": "Show me the latency",
+      "session_id": "session_20251017_132341",
+      "intent": "metrics_lookup",
+      "intent_confidence": 0.9,
+      "tools_to_use": [
+        "query_metrics_api",
+        "query_sql_database"
+      ],
+      "tool_selection_reasoning": "General metrics query - using both REST API (current) and SQL database (trends) for comprehensive answer",
+      "tool_outputs": {
+        "query_metrics_api": {
+          "service": "api-gateway",
+          "period": "1h",
+          "timestamp": "2025-10-17T07:53:43.438248Z",
+          "metrics": {
+            "p50": 24.85,
+            "p95": 64.61,
+            "p99": 149.1,
+            "avg": 32.3,
+            "max": 372.74,
+            "min": 9.94
+          },
+          "unit": "milliseconds",
+          "sample_count": 3600
+        },
+        "query_sql_database": {
+          "data": [
+            {
+              "service_name": "payment-service",
+              "timestamp": "2025-10-15T02:57:08.470294",
+              "avg_latency": 189.19
+            },
+            {
+              "service_name": "data-processor",
+              "timestamp": "2025-10-15T02:57:08.470294",
+              "avg_latency": 28.73
+            },
+            {
+              "service_name": "business-logic",
+              "timestamp": "2025-10-15T02:57:08.470294",
+              "avg_latency": 171.46
+            },
+            {
+              "service_name": "auth-service",
+              "timestamp": "2025-10-15T02:57:08.470294",
+              "avg_latency": 86.31
+            },
+            {
+              "service_name": "api-gateway",
+              "timestamp": "2025-10-15T02:57:08.470294",
+              "avg_latency": 45.15
+            },
+            {
+              "service_name": "payment-service",
+              "timestamp": "2025-10-15T01:57:08.470294",
+              "avg_latency": 209.59
+            },
+            {
+              "service_name": "data-processor",
+              "timestamp": "2025-10-15T01:57:08.470294",
+              "avg_latency": 25.65
+            },
+            {
+              "service_name": "business-logic",
+              "timestamp": "2025-10-15T01:57:08.470294",
+              "avg_latency": 157.57
+            },
+            {
+              "service_name": "auth-service",
+              "timestamp": "2025-10-15T01:57:08.470294",
+              "avg_latency": 90.18
+            },
+            {
+              "service_name": "api-gateway",
+              "timestamp": "2025-10-15T01:57:08.470294",
+              "avg_latency": 49.03
+            }
+          ],
+          "columns": [
+            "service_name",
+            "timestamp",
+            "avg_latency"
+          ],
+          "row_count": 10,
+          "question": "Show me the latency",
+          "sql_query": "SELECT service_name, timestamp, avg_latency\nFROM service_metrics\nORDER BY timestamp DESC\nLIMIT 10",
+          "success": true
+        }
+      },
+      "tool_errors": {},
+      "tools_executed": [
+        "query_metrics_api",
+        "query_sql_database"
+      ],
+      "aggregated_data": {
+        "metrics": {
+          "api": {
+            "service": "api-gateway",
+            "period": "1h",
+            "timestamp": "2025-10-17T07:53:43.438248Z",
+            "metrics": {
+              "p50": 24.85,
+              "p95": 64.61,
+              "p99": 149.1,
+              "avg": 32.3,
+              "max": 372.74,
+              "min": 9.94
+            },
+            "unit": "milliseconds",
+            "sample_count": 3600
+          },
+          "database": {
+            "data": [
+              {
+                "service_name": "payment-service",
+                "timestamp": "2025-10-15T02:57:08.470294",
+                "avg_latency": 189.19
+              },
+              {
+                "service_name": "data-processor",
+                "timestamp": "2025-10-15T02:57:08.470294",
+                "avg_latency": 28.73
+              },
+              {
+                "service_name": "business-logic",
+                "timestamp": "2025-10-15T02:57:08.470294",
+                "avg_latency": 171.46
+              },
+              {
+                "service_name": "auth-service",
+                "timestamp": "2025-10-15T02:57:08.470294",
+                "avg_latency": 86.31
+              },
+              {
+                "service_name": "api-gateway",
+                "timestamp": "2025-10-15T02:57:08.470294",
+                "avg_latency": 45.15
+              },
+              {
+                "service_name": "payment-service",
+                "timestamp": "2025-10-15T01:57:08.470294",
+                "avg_latency": 209.59
+              },
+              {
+                "service_name": "data-processor",
+                "timestamp": "2025-10-15T01:57:08.470294",
+                "avg_latency": 25.65
+              },
+              {
+                "service_name": "business-logic",
+                "timestamp": "2025-10-15T01:57:08.470294",
+                "avg_latency": 157.57
+              },
+              {
+                "service_name": "auth-service",
+                "timestamp": "2025-10-15T01:57:08.470294",
+                "avg_latency": 90.18
+              },
+              {
+                "service_name": "api-gateway",
+                "timestamp": "2025-10-15T01:57:08.470294",
+                "avg_latency": 49.03
+              }
+            ],
+            "columns": [
+              "service_name",
+              "timestamp",
+              "avg_latency"
+            ],
+            "row_count": 10,
+            "question": "Show me the latency",
+            "sql_query": "SELECT service_name, timestamp, avg_latency\nFROM service_metrics\nORDER BY timestamp DESC\nLIMIT 10",
+            "success": true
+          }
+        },
+        "knowledge": [],
+        "calculations": {},
+        "errors": []
+      },
+      "data_quality": {
+        "completeness": 1.0,
+        "consistency": 1.0,
+        "issues": []
+      },
+      "inference_result": {
+        "thresholds_checked": true,
+        "violations": []
+      },
+      "inference_type": "trend_analysis",
+      "findings": [
+        "P95 latency is healthy: 64.61ms",
+        "Historical data available: 10 records"
+      ],
+      "recommendations": [],
+      "confidence": 0.9,
+      "feedback_needed": false,
+      "retry_count": 0,
+      "retry_reason": null,
+      "clarification_question": null,
+      "orchestration_log": [
+        {
+          "stage": "tool_selection",
+          "intent": "metrics_lookup",
+          "decision": "Selected 2 tool(s): query_metrics_api, query_sql_database",
+          "reasoning": "General metrics query - using both REST API (current) and SQL database (trends) for comprehensive answer",
+          "retry_iteration": 0,
+          "timestamp": "2025-10-17T13:23:43.434200"
+        }
+      ],
+      "feedback_iterations": [],
+      "off_topic_query": false,
+      "final_answer": "## Findings\n\n1. P95 latency is healthy: 64.61ms\n2. Historical data available: 10 records\n\n## Execution Trace\n\n- **Intent classified**: metrics_lookup\n- **Tools used**: query_metrics_api, query_sql_database\n- **Processing time**: 3298ms\n- **Confidence**: 0.90\n- **Trace events**: 22",
+      "answer_format": "markdown",
+      "trace": [
+        {
+          "timestamp": "2025-10-17T13:23:41.091808",
+          "node": "classify_intent",
+          "event_type": "node_start",
+          "data": {
+            "query": "Show me the latency"
+          }
+        },
+        {
+          "timestamp": "2025-10-17T13:23:43.431788",
+          "node": "classify_intent",
+          "event_type": "classification",
+          "data": {
+            "intent": "metrics_lookup",
+            "confidence": 0.9,
+            "reasoning": "Query asks for latency metric but does not specify service name. Defaulting to api-gateway service and current time range. Use REST API for real-time latency data."
+          }
+        },
+        {
+          "timestamp": "2025-10-17T13:23:43.431822",
+          "node": "classify_intent",
+          "event_type": "node_end",
+          "data": {
+            "duration_ms": 2340.013265609741
+          }
+        },
+        {
+          "timestamp": "2025-10-17T13:23:43.434159",
+          "node": "select_tools",
+          "event_type": "node_start",
+          "data": {
+            "intent": "metrics_lookup"
+          }
+        },
+        {
+          "timestamp": "2025-10-17T13:23:43.434205",
+          "node": "select_tools",
+          "event_type": "tools_selected",
+          "data": {
+            "tools": [
+              "query_metrics_api",
+              "query_sql_database"
+            ],
+            "reasoning": "General metrics query - using both REST API (current) and SQL database (trends) for comprehensive answer"
+          }
+        },
+        {
+          "timestamp": "2025-10-17T13:23:43.434208",
+          "node": "select_tools",
+          "event_type": "node_end",
+          "data": {
+            "duration_ms": 0.054836273193359375
+          }
+        },
+        {
+          "timestamp": "2025-10-17T13:23:43.435678",
+          "node": "execute_tools",
+          "event_type": "node_start",
+          "data": {
+            "tools_count": 2
+          }
+        },
+        {
+          "timestamp": "2025-10-17T13:23:43.435685",
+          "node": "execute_tools",
+          "event_type": "tool_call_start",
+          "data": {
+            "tool": "query_metrics_api"
+          }
+        },
+        {
+          "timestamp": "2025-10-17T13:23:43.439135",
+          "node": "execute_tools",
+          "event_type": "tool_call_end",
+          "data": {
+            "tool": "query_metrics_api",
+            "duration_ms": 3.443002700805664,
+            "success": true,
+            "output_size": 228
+          }
+        },
+        {
+          "timestamp": "2025-10-17T13:23:43.439141",
+          "node": "execute_tools",
+          "event_type": "tool_call_start",
+          "data": {
+            "tool": "query_sql_database"
+          }
+        },
+        {
+          "timestamp": "2025-10-17T13:23:44.393237",
+          "node": "execute_tools",
+          "event_type": "tool_call_end",
+          "data": {
+            "tool": "query_sql_database",
+            "duration_ms": 954.0753364562988,
+            "success": true,
+            "output_size": 1259
+          }
+        },
+        {
+          "timestamp": "2025-10-17T13:23:44.393249",
+          "node": "execute_tools",
+          "event_type": "node_end",
+          "data": {
+            "duration_ms": 957.573413848877,
+            "tools_executed": 2,
+            "tools_failed": 0
+          }
+        },
+        {
+          "timestamp": "2025-10-17T13:23:44.394579",
+          "node": "aggregate_results",
+          "event_type": "node_start",
+          "data": {}
+        },
+        {
+          "timestamp": "2025-10-17T13:23:44.394594",
+          "node": "aggregate_results",
+          "event_type": "aggregation_complete",
+          "data": {
+            "metrics_sources": 2,
+            "knowledge_results": 0,
+            "data_quality": {
+              "completeness": 1.0,
+              "consistency": 1.0,
+              "issues": []
+            }
+          }
+        },
+        {
+          "timestamp": "2025-10-17T13:23:44.394597",
+          "node": "aggregate_results",
+          "event_type": "node_end",
+          "data": {
+            "duration_ms": 0.019788742065429688
+          }
+        },
+        {
+          "timestamp": "2025-10-17T13:23:44.395833",
+          "node": "perform_inference",
+          "event_type": "node_start",
+          "data": {
+            "intent": "metrics_lookup"
+          }
+        },
+        {
+          "timestamp": "2025-10-17T13:23:44.395852",
+          "node": "perform_inference",
+          "event_type": "inference_complete",
+          "data": {
+            "inference_type": "trend_analysis",
+            "findings_count": 2,
+            "recommendations_count": 0
+          }
+        },
+        {
+          "timestamp": "2025-10-17T13:23:44.395854",
+          "node": "perform_inference",
+          "event_type": "node_end",
+          "data": {
+            "duration_ms": 0.022172927856445312
+          }
+        },
+        {
+          "timestamp": "2025-10-17T13:23:44.396821",
+          "node": "check_feedback",
+          "event_type": "node_start",
+          "data": {
+            "confidence": 0.9,
+            "retry_count": 0
+          }
+        },
+        {
+          "timestamp": "2025-10-17T13:23:44.396827",
+          "node": "check_feedback",
+          "event_type": "high_confidence",
+          "data": {
+            "confidence": 0.9
+          }
+        },
+        {
+          "timestamp": "2025-10-17T13:23:44.396831",
+          "node": "check_feedback",
+          "event_type": "node_end",
+          "data": {
+            "duration_ms": 0.011205673217773438,
+            "feedback_needed": false,
+            "retry_reason": null
+          }
+        },
+        {
+          "timestamp": "2025-10-17T13:23:44.398473",
+          "node": "format_response",
+          "event_type": "node_start",
+          "data": {}
+        },
+        {
+          "timestamp": "2025-10-17T13:23:44.398534",
+          "node": "format_response",
+          "event_type": "node_end",
+          "data": {
+            "duration_ms": 0.0629425048828125,
+            "answer_length": 281
+          }
+        }
+      ],
+      "start_time": "2025-10-17T13:23:41.090704",
+      "end_time": "2025-10-17T13:23:44.398517",
+      "total_duration_ms": 3307.813,
+      "node_durations": {
+        "classify_intent": 2340.013265609741,
+        "select_tools": 0.054836273193359375,
+        "execute_tools": 957.573413848877,
+        "aggregate_results": 0.019788742065429688,
+        "perform_inference": 0.022172927856445312,
+        "check_feedback": 0.011205673217773438,
+        "format_response": 0.0629425048828125
+      },
+      "trace_id": "trace_session_20251017_132341",
+      "span_id": "",
+      "parent_span_id": null
+    },
+    "timestamp": "2025-10-17 13:23:44",
+    "test_name": "Clarify Intent Feedback"
+  },
+  {
+    "query": "What's the error rate?",
+    "result": {
+      "query": "What's the error rate?",
+      "session_id": "session_20251017_132344",
+      "intent": "metrics_lookup",
+      "intent_confidence": 0.9,
+      "tools_to_use": [
+        "query_metrics_api",
+        "query_sql_database"
+      ],
+      "tool_selection_reasoning": "General metrics query - using both REST API (current) and SQL database (trends) for comprehensive answer",
+      "tool_outputs": {
+        "query_metrics_api": {
+          "service": "api-gateway",
+          "period": "1h",
+          "error_rate": 0.0083,
+          "total_requests": 500000,
+          "total_errors": 4161,
+          "error_breakdown": {
+            "4xx": {
+              "count": 3320,
+              "percentage": 79.79,
+              "codes": {
+                "400": 498,
+                "401": 1328,
+                "403": 664,
+                "404": 830
+              }
+            },
+            "5xx": {
+              "count": 841,
+              "percentage": 20.21,
+              "codes": {
+                "500": 504,
+                "502": 168,
+                "503": 126,
+                "504": 42
+              }
+            }
+          }
+        },
+        "query_sql_database": {
+          "data": [],
+          "columns": [
+            "service_name",
+            "total_errors",
+            "total_requests",
+            "error_rate_pct",
+            "measurements"
+          ],
+          "row_count": 0,
+          "question": "What's the error rate?",
+          "sql_query": "SELECT service_name,\n       SUM(error_count) as total_errors,\n       SUM(request_count) as total_requests,\n       ROUND(100.0 * SUM(error_count) / NULLIF(SUM(request_count), 0), 2) as error_rate_pct,\n       COUNT(*) as measurements\nFROM service_metrics\nWHERE timestamp >= datetime('now', '-24 hours')\nGROUP BY service_name\nORDER BY error_rate_pct DESC\nLIMIT 10",
+          "success": true
+        }
+      },
+      "tool_errors": {},
+      "tools_executed": [
+        "query_metrics_api",
+        "query_sql_database"
+      ],
+      "aggregated_data": {
+        "metrics": {
+          "api": {
+            "service": "api-gateway",
+            "period": "1h",
+            "error_rate": 0.0083,
+            "total_requests": 500000,
+            "total_errors": 4161,
+            "error_breakdown": {
+              "4xx": {
+                "count": 3320,
+                "percentage": 79.79,
+                "codes": {
+                  "400": 498,
+                  "401": 1328,
+                  "403": 664,
+                  "404": 830
+                }
+              },
+              "5xx": {
+                "count": 841,
+                "percentage": 20.21,
+                "codes": {
+                  "500": 504,
+                  "502": 168,
+                  "503": 126,
+                  "504": 42
+                }
+              }
+            }
+          }
+        },
+        "knowledge": [],
+        "calculations": {},
+        "errors": []
+      },
+      "data_quality": {
+        "completeness": 0.5,
+        "consistency": 1.0,
+        "issues": [
+          "Database returned no matching records"
+        ]
+      },
+      "inference_result": {
+        "thresholds_checked": true,
+        "violations": [
+          "Error rate is acceptable: 0.83%"
+        ]
+      },
+      "inference_type": "none",
+      "findings": [
+        "Error rate is acceptable: 0.83%"
+      ],
+      "recommendations": [],
+      "confidence": 0.6120000000000001,
+      "feedback_needed": false,
+      "retry_count": 0,
+      "retry_reason": null,
+      "clarification_question": null,
+      "orchestration_log": [
+        {
+          "stage": "tool_selection",
+          "intent": "metrics_lookup",
+          "decision": "Selected 2 tool(s): query_metrics_api, query_sql_database",
+          "reasoning": "General metrics query - using both REST API (current) and SQL database (trends) for comprehensive answer",
+          "retry_iteration": 0,
+          "timestamp": "2025-10-17T13:23:46.335575"
+        }
+      ],
+      "feedback_iterations": [],
+      "off_topic_query": false,
+      "final_answer": "## Findings\n\n1. Error rate is acceptable: 0.83%\n\n## Execution Trace\n\n- **Intent classified**: metrics_lookup\n- **Tools used**: query_metrics_api, query_sql_database\n- **Processing time**: 4019ms\n- **Confidence**: 0.61\n- **Trace events**: 24",
+      "answer_format": "markdown",
+      "trace": [
+        {
+          "timestamp": "2025-10-17T13:23:44.400907",
+          "node": "classify_intent",
+          "event_type": "node_start",
+          "data": {
+            "query": "What's the error rate?"
+          }
+        },
+        {
+          "timestamp": "2025-10-17T13:23:46.334554",
+          "node": "classify_intent",
+          "event_type": "classification",
+          "data": {
+            "intent": "metrics_lookup",
+            "confidence": 0.9,
+            "reasoning": "Query asks for error rate metric but does not specify service or time range. Default to api-gateway service and recent time range. Use REST API for current error rate."
+          }
+        },
+        {
+          "timestamp": "2025-10-17T13:23:46.334563",
+          "node": "classify_intent",
+          "event_type": "node_end",
+          "data": {
+            "duration_ms": 1933.6559772491455
+          }
+        },
+        {
+          "timestamp": "2025-10-17T13:23:46.335563",
+          "node": "select_tools",
+          "event_type": "node_start",
+          "data": {
+            "intent": "metrics_lookup"
+          }
+        },
+        {
+          "timestamp": "2025-10-17T13:23:46.335577",
+          "node": "select_tools",
+          "event_type": "tools_selected",
+          "data": {
+            "tools": [
+              "query_metrics_api",
+              "query_sql_database"
+            ],
+            "reasoning": "General metrics query - using both REST API (current) and SQL database (trends) for comprehensive answer"
+          }
+        },
+        {
+          "timestamp": "2025-10-17T13:23:46.335579",
+          "node": "select_tools",
+          "event_type": "node_end",
+          "data": {
+            "duration_ms": 0.016927719116210938
+          }
+        },
+        {
+          "timestamp": "2025-10-17T13:23:46.336377",
+          "node": "execute_tools",
+          "event_type": "node_start",
+          "data": {
+            "tools_count": 2
+          }
+        },
+        {
+          "timestamp": "2025-10-17T13:23:46.336383",
+          "node": "execute_tools",
+          "event_type": "tool_call_start",
+          "data": {
+            "tool": "query_metrics_api"
+          }
+        },
+        {
+          "timestamp": "2025-10-17T13:23:46.339267",
+          "node": "execute_tools",
+          "event_type": "tool_call_end",
+          "data": {
+            "tool": "query_metrics_api",
+            "duration_ms": 2.872943878173828,
+            "success": true,
+            "output_size": 340
+          }
+        },
+        {
+          "timestamp": "2025-10-17T13:23:46.339272",
+          "node": "execute_tools",
+          "event_type": "tool_call_start",
+          "data": {
+            "tool": "query_sql_database"
+          }
+        },
+        {
+          "timestamp": "2025-10-17T13:23:48.421987",
+          "node": "execute_tools",
+          "event_type": "tool_call_end",
+          "data": {
+            "tool": "query_sql_database",
+            "duration_ms": 2082.704544067383,
+            "success": true,
+            "output_size": 566
+          }
+        },
+        {
+          "timestamp": "2025-10-17T13:23:48.421998",
+          "node": "execute_tools",
+          "event_type": "node_end",
+          "data": {
+            "duration_ms": 2085.621118545532,
+            "tools_executed": 2,
+            "tools_failed": 0
+          }
+        },
+        {
+          "timestamp": "2025-10-17T13:23:48.423129",
+          "node": "aggregate_results",
+          "event_type": "node_start",
+          "data": {}
+        },
+        {
+          "timestamp": "2025-10-17T13:23:48.423141",
+          "node": "confidence_update",
+          "event_type": "confidence_change",
+          "data": {
+            "previous": 0.9,
+            "new": 0.765,
+            "factor": 0.85,
+            "reason": "Some data sources unavailable"
+          }
+        },
+        {
+          "timestamp": "2025-10-17T13:23:48.423145",
+          "node": "confidence_update",
+          "event_type": "confidence_change",
+          "data": {
+            "previous": 0.765,
+            "new": 0.6120000000000001,
+            "factor": 0.8,
+            "reason": "1 tool(s) returned empty results"
+          }
+        },
+        {
+          "timestamp": "2025-10-17T13:23:48.423147",
+          "node": "aggregate_results",
+          "event_type": "aggregation_complete",
+          "data": {
+            "metrics_sources": 1,
+            "knowledge_results": 0,
+            "data_quality": {
+              "completeness": 0.5,
+              "consistency": 1.0,
+              "issues": [
+                "Database returned no matching records"
+              ]
+            }
+          }
+        },
+        {
+          "timestamp": "2025-10-17T13:23:48.423148",
+          "node": "aggregate_results",
+          "event_type": "node_end",
+          "data": {
+            "duration_ms": 0.02002716064453125
+          }
+        },
+        {
+          "timestamp": "2025-10-17T13:23:48.424142",
+          "node": "perform_inference",
+          "event_type": "node_start",
+          "data": {
+            "intent": "metrics_lookup"
+          }
+        },
+        {
+          "timestamp": "2025-10-17T13:23:48.424154",
+          "node": "perform_inference",
+          "event_type": "inference_complete",
+          "data": {
+            "inference_type": "none",
+            "findings_count": 1,
+            "recommendations_count": 0
+          }
+        },
+        {
+          "timestamp": "2025-10-17T13:23:48.424157",
+          "node": "perform_inference",
+          "event_type": "node_end",
+          "data": {
+            "duration_ms": 0.015974044799804688
+          }
+        },
+        {
+          "timestamp": "2025-10-17T13:23:48.424902",
+          "node": "check_feedback",
+          "event_type": "node_start",
+          "data": {
+            "confidence": 0.6120000000000001,
+            "retry_count": 0
+          }
+        },
+        {
+          "timestamp": "2025-10-17T13:23:48.424907",
+          "node": "check_feedback",
+          "event_type": "medium_confidence",
+          "data": {
+            "confidence": 0.6120000000000001,
+            "note": "Proceeding with some uncertainty"
+          }
+        },
+        {
+          "timestamp": "2025-10-17T13:23:48.424910",
+          "node": "check_feedback",
+          "event_type": "node_end",
+          "data": {
+            "duration_ms": 0.009298324584960938,
+            "feedback_needed": false,
+            "retry_reason": null
+          }
+        },
+        {
+          "timestamp": "2025-10-17T13:23:48.426274",
+          "node": "format_response",
+          "event_type": "node_start",
+          "data": {}
+        },
+        {
+          "timestamp": "2025-10-17T13:23:48.426293",
+          "node": "format_response",
+          "event_type": "node_end",
+          "data": {
+            "duration_ms": 0.018835067749023438,
+            "answer_length": 240
+          }
+        }
+      ],
+      "start_time": "2025-10-17T13:23:44.399512",
+      "end_time": "2025-10-17T13:23:48.426287",
+      "total_duration_ms": 4026.7749999999996,
+      "node_durations": {
+        "classify_intent": 1933.6559772491455,
+        "select_tools": 0.016927719116210938,
+        "execute_tools": 2085.621118545532,
+        "aggregate_results": 0.02002716064453125,
+        "perform_inference": 0.015974044799804688,
+        "check_feedback": 0.009298324584960938,
+        "format_response": 0.018835067749023438
+      },
+      "trace_id": "trace_session_20251017_132344",
+      "span_id": "",
+      "parent_span_id": null
+    },
+    "timestamp": "2025-10-17 13:23:48",
+    "test_name": "Clarify Intent Feedback"
+  },
+  {
+    "query": "Check the CPU usage",
+    "result": {
+      "query": "Check the CPU usage",
+      "session_id": "session_20251017_132348",
+      "intent": "metrics_lookup",
+      "intent_confidence": 0.9,
+      "tools_to_use": [
+        "query_sql_database"
+      ],
+      "tool_selection_reasoning": "Query requires historical data analysis from SQL database (CPU/memory metrics)",
+      "tool_outputs": {
+        "query_sql_database": {
+          "data": [
+            {
+              "service_name": "payment-service",
+              "timestamp": "2025-10-15T02:57:08.470294",
+              "cpu_usage": 41.92,
+              "memory_usage": 47.13,
+              "request_count": 774,
+              "status": "healthy"
+            },
+            {
+              "service_name": "data-processor",
+              "timestamp": "2025-10-15T02:57:08.470294",
+              "cpu_usage": 73.23,
+              "memory_usage": 85.48,
+              "request_count": 6621,
+              "status": "healthy"
+            },
+            {
+              "service_name": "business-logic",
+              "timestamp": "2025-10-15T02:57:08.470294",
+              "cpu_usage": 65.94,
+              "memory_usage": 74.42,
+              "request_count": 2284,
+              "status": "healthy"
+            },
+            {
+              "service_name": "auth-service",
+              "timestamp": "2025-10-15T02:57:08.470294",
+              "cpu_usage": 34.73,
+              "memory_usage": 57.58,
+              "request_count": 1181,
+              "status": "healthy"
+            },
+            {
+              "service_name": "api-gateway",
+              "timestamp": "2025-10-15T02:57:08.470294",
+              "cpu_usage": 50.93,
+              "memory_usage": 57.14,
+              "request_count": 3025,
+              "status": "healthy"
+            },
+            {
+              "service_name": "payment-service",
+              "timestamp": "2025-10-15T01:57:08.470294",
+              "cpu_usage": 47.62,
+              "memory_usage": 51.57,
+              "request_count": 756,
+              "status": "healthy"
+            },
+            {
+              "service_name": "data-processor",
+              "timestamp": "2025-10-15T01:57:08.470294",
+              "cpu_usage": 65.38,
+              "memory_usage": 81.02,
+              "request_count": 5645,
+              "status": "healthy"
+            },
+            {
+              "service_name": "business-logic",
+              "timestamp": "2025-10-15T01:57:08.470294",
+              "cpu_usage": 61.43,
+              "memory_usage": 72.55,
+              "request_count": 1753,
+              "status": "healthy"
+            },
+            {
+              "service_name": "auth-service",
+              "timestamp": "2025-10-15T01:57:08.470294",
+              "cpu_usage": 37.19,
+              "memory_usage": 54.45,
+              "request_count": 1596,
+              "status": "degraded"
+            },
+            {
+              "service_name": "api-gateway",
+              "timestamp": "2025-10-15T01:57:08.470294",
+              "cpu_usage": 49.36,
+              "memory_usage": 62.64,
+              "request_count": 3974,
+              "status": "healthy"
+            }
+          ],
+          "columns": [
+            "service_name",
+            "timestamp",
+            "cpu_usage",
+            "memory_usage",
+            "request_count",
+            "status"
+          ],
+          "row_count": 10,
+          "question": "Check the CPU usage",
+          "sql_query": "SELECT service_name, timestamp, cpu_usage, memory_usage, request_count, status\nFROM service_metrics\nORDER BY timestamp DESC\nLIMIT 10",
+          "success": true
+        }
+      },
+      "tool_errors": {},
+      "tools_executed": [
+        "query_sql_database"
+      ],
+      "aggregated_data": {
+        "metrics": {
+          "database": {
+            "data": [
+              {
+                "service_name": "payment-service",
+                "timestamp": "2025-10-15T02:57:08.470294",
+                "cpu_usage": 41.92,
+                "memory_usage": 47.13,
+                "request_count": 774,
+                "status": "healthy"
+              },
+              {
+                "service_name": "data-processor",
+                "timestamp": "2025-10-15T02:57:08.470294",
+                "cpu_usage": 73.23,
+                "memory_usage": 85.48,
+                "request_count": 6621,
+                "status": "healthy"
+              },
+              {
+                "service_name": "business-logic",
+                "timestamp": "2025-10-15T02:57:08.470294",
+                "cpu_usage": 65.94,
+                "memory_usage": 74.42,
+                "request_count": 2284,
+                "status": "healthy"
+              },
+              {
+                "service_name": "auth-service",
+                "timestamp": "2025-10-15T02:57:08.470294",
+                "cpu_usage": 34.73,
+                "memory_usage": 57.58,
+                "request_count": 1181,
+                "status": "healthy"
+              },
+              {
+                "service_name": "api-gateway",
+                "timestamp": "2025-10-15T02:57:08.470294",
+                "cpu_usage": 50.93,
+                "memory_usage": 57.14,
+                "request_count": 3025,
+                "status": "healthy"
+              },
+              {
+                "service_name": "payment-service",
+                "timestamp": "2025-10-15T01:57:08.470294",
+                "cpu_usage": 47.62,
+                "memory_usage": 51.57,
+                "request_count": 756,
+                "status": "healthy"
+              },
+              {
+                "service_name": "data-processor",
+                "timestamp": "2025-10-15T01:57:08.470294",
+                "cpu_usage": 65.38,
+                "memory_usage": 81.02,
+                "request_count": 5645,
+                "status": "healthy"
+              },
+              {
+                "service_name": "business-logic",
+                "timestamp": "2025-10-15T01:57:08.470294",
+                "cpu_usage": 61.43,
+                "memory_usage": 72.55,
+                "request_count": 1753,
+                "status": "healthy"
+              },
+              {
+                "service_name": "auth-service",
+                "timestamp": "2025-10-15T01:57:08.470294",
+                "cpu_usage": 37.19,
+                "memory_usage": 54.45,
+                "request_count": 1596,
+                "status": "degraded"
+              },
+              {
+                "service_name": "api-gateway",
+                "timestamp": "2025-10-15T01:57:08.470294",
+                "cpu_usage": 49.36,
+                "memory_usage": 62.64,
+                "request_count": 3974,
+                "status": "healthy"
+              }
+            ],
+            "columns": [
+              "service_name",
+              "timestamp",
+              "cpu_usage",
+              "memory_usage",
+              "request_count",
+              "status"
+            ],
+            "row_count": 10,
+            "question": "Check the CPU usage",
+            "sql_query": "SELECT service_name, timestamp, cpu_usage, memory_usage, request_count, status\nFROM service_metrics\nORDER BY timestamp DESC\nLIMIT 10",
+            "success": true
+          }
+        },
+        "knowledge": [],
+        "calculations": {},
+        "errors": []
+      },
+      "data_quality": {
+        "completeness": 1.0,
+        "consistency": 1.0,
+        "issues": []
+      },
+      "inference_result": {
+        "thresholds_checked": true,
+        "violations": []
+      },
+      "inference_type": "trend_analysis",
+      "findings": [
+        "Historical data available: 10 records"
+      ],
+      "recommendations": [],
+      "confidence": 0.9,
+      "feedback_needed": false,
+      "retry_count": 0,
+      "retry_reason": null,
+      "clarification_question": null,
+      "orchestration_log": [
+        {
+          "stage": "tool_selection",
+          "intent": "metrics_lookup",
+          "decision": "Selected 1 tool(s): query_sql_database",
+          "reasoning": "Query requires historical data analysis from SQL database (CPU/memory metrics)",
+          "retry_iteration": 0,
+          "timestamp": "2025-10-17T13:23:50.413182"
+        }
+      ],
+      "feedback_iterations": [],
+      "off_topic_query": false,
+      "final_answer": "## Findings\n\n1. Historical data available: 10 records\n\n## Execution Trace\n\n- **Intent classified**: metrics_lookup\n- **Tools used**: query_sql_database\n- **Processing time**: 3226ms\n- **Confidence**: 0.90\n- **Trace events**: 20",
+      "answer_format": "markdown",
+      "trace": [
+        {
+          "timestamp": "2025-10-17T13:23:48.428325",
+          "node": "classify_intent",
+          "event_type": "node_start",
+          "data": {
+            "query": "Check the CPU usage"
+          }
+        },
+        {
+          "timestamp": "2025-10-17T13:23:50.412141",
+          "node": "classify_intent",
+          "event_type": "classification",
+          "data": {
+            "intent": "metrics_lookup",
+            "confidence": 0.9,
+            "reasoning": "Query asks for CPU usage metric but does not specify service or time range. Default to api-gateway service and recent time range. Use SQL database for CPU metrics."
+          }
+        },
+        {
+          "timestamp": "2025-10-17T13:23:50.412153",
+          "node": "classify_intent",
+          "event_type": "node_end",
+          "data": {
+            "duration_ms": 1983.8283061981201
+          }
+        },
+        {
+          "timestamp": "2025-10-17T13:23:50.413169",
+          "node": "select_tools",
+          "event_type": "node_start",
+          "data": {
+            "intent": "metrics_lookup"
+          }
+        },
+        {
+          "timestamp": "2025-10-17T13:23:50.413184",
+          "node": "select_tools",
+          "event_type": "tools_selected",
+          "data": {
+            "tools": [
+              "query_sql_database"
+            ],
+            "reasoning": "Query requires historical data analysis from SQL database (CPU/memory metrics)"
+          }
+        },
+        {
+          "timestamp": "2025-10-17T13:23:50.413186",
+          "node": "select_tools",
+          "event_type": "node_end",
+          "data": {
+            "duration_ms": 0.017404556274414062
+          }
+        },
+        {
+          "timestamp": "2025-10-17T13:23:50.413971",
+          "node": "execute_tools",
+          "event_type": "node_start",
+          "data": {
+            "tools_count": 1
+          }
+        },
+        {
+          "timestamp": "2025-10-17T13:23:50.413976",
+          "node": "execute_tools",
+          "event_type": "tool_call_start",
+          "data": {
+            "tool": "query_sql_database"
+          }
+        },
+        {
+          "timestamp": "2025-10-17T13:23:51.656136",
+          "node": "execute_tools",
+          "event_type": "tool_call_end",
+          "data": {
+            "tool": "query_sql_database",
+            "duration_ms": 1242.1362400054932,
+            "success": true,
+            "output_size": 1980
+          }
+        },
+        {
+          "timestamp": "2025-10-17T13:23:51.656147",
+          "node": "execute_tools",
+          "event_type": "node_end",
+          "data": {
+            "duration_ms": 1242.1762943267822,
+            "tools_executed": 1,
+            "tools_failed": 0
+          }
+        },
+        {
+          "timestamp": "2025-10-17T13:23:51.657407",
+          "node": "aggregate_results",
+          "event_type": "node_start",
+          "data": {}
+        },
+        {
+          "timestamp": "2025-10-17T13:23:51.657418",
+          "node": "aggregate_results",
+          "event_type": "aggregation_complete",
+          "data": {
+            "metrics_sources": 1,
+            "knowledge_results": 0,
+            "data_quality": {
+              "completeness": 1.0,
+              "consistency": 1.0,
+              "issues": []
+            }
+          }
+        },
+        {
+          "timestamp": "2025-10-17T13:23:51.657420",
+          "node": "aggregate_results",
+          "event_type": "node_end",
+          "data": {
+            "duration_ms": 0.012874603271484375
+          }
+        },
+        {
+          "timestamp": "2025-10-17T13:23:51.658234",
+          "node": "perform_inference",
+          "event_type": "node_start",
+          "data": {
+            "intent": "metrics_lookup"
+          }
+        },
+        {
+          "timestamp": "2025-10-17T13:23:51.658245",
+          "node": "perform_inference",
+          "event_type": "inference_complete",
+          "data": {
+            "inference_type": "trend_analysis",
+            "findings_count": 1,
+            "recommendations_count": 0
+          }
+        },
+        {
+          "timestamp": "2025-10-17T13:23:51.658247",
+          "node": "perform_inference",
+          "event_type": "node_end",
+          "data": {
+            "duration_ms": 0.013113021850585938
+          }
+        },
+        {
+          "timestamp": "2025-10-17T13:23:51.659032",
+          "node": "check_feedback",
+          "event_type": "node_start",
+          "data": {
+            "confidence": 0.9,
+            "retry_count": 0
+          }
+        },
+        {
+          "timestamp": "2025-10-17T13:23:51.659037",
+          "node": "check_feedback",
+          "event_type": "high_confidence",
+          "data": {
+            "confidence": 0.9
+          }
+        },
+        {
+          "timestamp": "2025-10-17T13:23:51.659040",
+          "node": "check_feedback",
+          "event_type": "node_end",
+          "data": {
+            "duration_ms": 0.008821487426757812,
+            "feedback_needed": false,
+            "retry_reason": null
+          }
+        },
+        {
+          "timestamp": "2025-10-17T13:23:51.660526",
+          "node": "format_response",
+          "event_type": "node_start",
+          "data": {}
+        },
+        {
+          "timestamp": "2025-10-17T13:23:51.660547",
+          "node": "format_response",
+          "event_type": "node_end",
+          "data": {
+            "duration_ms": 0.021219253540039062,
+            "answer_length": 227
+          }
+        }
+      ],
+      "start_time": "2025-10-17T13:23:48.427034",
+      "end_time": "2025-10-17T13:23:51.660541",
+      "total_duration_ms": 3233.507,
+      "node_durations": {
+        "classify_intent": 1983.8283061981201,
+        "select_tools": 0.017404556274414062,
+        "execute_tools": 1242.1762943267822,
+        "aggregate_results": 0.012874603271484375,
+        "perform_inference": 0.013113021850585938,
+        "check_feedback": 0.008821487426757812,
+        "format_response": 0.021219253540039062
+      },
+      "trace_id": "trace_session_20251017_132348",
+      "span_id": "",
+      "parent_span_id": null
+    },
+    "timestamp": "2025-10-17 13:23:51",
+    "test_name": "Clarify Intent Feedback"
+  }
+]
