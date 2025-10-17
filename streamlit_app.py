@@ -3338,32 +3338,26 @@ with tab_workflow:
 
 with tab_observability:
     st.markdown("## 📡 Observability & Monitoring")
-    st.markdown("View traces, logs, and metrics from LangSmith and OpenTelemetry")
+    st.markdown("View traces and execution analytics with LangSmith integration")
 
     # Get observability status from agent module
     try:
         from agent import OBSERVABILITY_STATUS
         obs_status = OBSERVABILITY_STATUS
     except Exception as e:
-        obs_status = {"logging": False, "langsmith": False, "opentelemetry": False}
+        obs_status = {"logging": False, "langsmith": False}
         st.warning(f"Could not load observability status: {e}")
 
     # Check observability configuration
     st.markdown("### ⚙️ Configuration Status")
 
-    # Show overall status
-    enabled_count = sum(obs_status.values())
-    total_count = len(obs_status)
-
-    status_col1, status_col2, status_col3 = st.columns(3)
+    status_col1, status_col2 = st.columns(2)
     with status_col1:
-        st.metric("✅ Enabled Features", f"{enabled_count}/{total_count}")
-    with status_col2:
         langsmith_status = "🟢 Active" if obs_status.get('langsmith') else "🔴 Inactive"
-        st.metric("LangSmith", langsmith_status)
-    with status_col3:
-        otel_status = "🟢 Active" if obs_status.get('opentelemetry') else "🔴 Inactive"
-        st.metric("OpenTelemetry", otel_status)
+        st.metric("LangSmith Tracing", langsmith_status)
+    with status_col2:
+        executions_count = len(st.session_state.agent_history)
+        st.metric("Cached Executions", f"{executions_count}")
 
     st.markdown("---")
 
@@ -3424,152 +3418,87 @@ with tab_observability:
     st.markdown("---")
 
     # Detailed configuration
-    st.markdown("### 🔧 Detailed Configuration")
+    st.markdown("### 🔧 LangSmith Configuration")
 
     langsmith_configured = obs_status.get('langsmith', False)
-    otel_configured = obs_status.get('opentelemetry', False)
 
-    col1, col2 = st.columns(2)
+    if langsmith_configured:
+        st.success("✅ LangSmith Tracing Enabled")
 
-    with col1:
-        st.markdown("#### 🔗 LangSmith Tracing")
-        if langsmith_configured:
-            st.success("✅ LangSmith Tracing Enabled")
+        # Show configuration details
+        project = os.getenv('LANGCHAIN_PROJECT') or os.getenv('LANGSMITH_PROJECT', 'intent-agent-poc')
+        api_key = os.getenv('LANGCHAIN_API_KEY') or os.getenv('LANGSMITH_API_KEY', '')
+        endpoint = os.getenv('LANGCHAIN_ENDPOINT', 'https://api.smith.langchain.com')
+        tracing_enabled = os.getenv('LANGCHAIN_TRACING_V2', 'false')
 
-            # Show configuration details
-            project = os.getenv('LANGCHAIN_PROJECT', 'default')
-            api_key = os.getenv('LANGCHAIN_API_KEY', '')
-            endpoint = os.getenv('LANGCHAIN_ENDPOINT', 'https://api.smith.langchain.com')
-
+        config_col1, config_col2 = st.columns(2)
+        with config_col1:
             st.markdown(f"""
             **Configuration:**
             - **Project:** `{project}`
             - **API Key:** `{'***' + api_key[-8:] if api_key else 'Not set'}`
-            - **Endpoint:** `{endpoint}`
-            - **Tracing:** `{os.getenv('LANGCHAIN_TRACING_V2', 'false')}`
             """)
-
-            # Link to LangSmith dashboard
-            st.markdown(f"[🔗 View Traces in LangSmith Dashboard](https://smith.langchain.com/)")
-
-            # What's being tracked
-            with st.expander("📊 What's Being Tracked"):
-                st.markdown("""
-                **Automatically tracked:**
-                - ✅ Intent classification (OpenAI GPT-4.1-mini calls)
-                - ✅ Tool executions (all 4 tools)
-                - ✅ Node transitions (7 workflow nodes)
-                - ✅ Complete state transitions
-                - ✅ Error tracking and retries
-                - ✅ Input/output for each step
-                - ✅ Latencies and performance metrics
-                """)
-        else:
-            st.warning("⚠️ LangSmith Not Configured")
-            st.markdown("""
-            **Current Status:**
-            - Tracing framework is loaded
-            - API key not set (traces won't be sent to cloud)
-            - Local traces still available in agent response
-            """)
-
-            with st.expander("📝 How to Enable LangSmith"):
-                st.markdown("""
-                **Step 1:** Get API key from [smith.langchain.com](https://smith.langchain.com/)
-
-                **Step 2:** Add to `.env` file:
-                ```
-                LANGCHAIN_TRACING_V2=true
-                LANGCHAIN_API_KEY=ls__your-key-here
-                LANGCHAIN_PROJECT=intent-agent-poc
-                ```
-
-                **Step 3:** Restart the application:
-                ```bash
-                streamlit run streamlit_app.py
-                ```
-                """)
-
-    with col2:
-        st.markdown("#### 📊 OpenTelemetry")
-        if otel_configured:
-            st.success("✅ OpenTelemetry Configured")
-
-            # Show configuration details
-            service_name = os.getenv('OTEL_SERVICE_NAME', 'intent-agent')
-            exporter = os.getenv('OTEL_EXPORTER', 'console')
-            endpoint = os.getenv('OTEL_EXPORTER_OTLP_ENDPOINT', 'http://localhost:4317')
-
+        with config_col2:
             st.markdown(f"""
-            **Configuration:**
-            - **Service Name:** `{service_name}`
-            - **Exporter:** `{exporter}`
-            - **Endpoint:** `{endpoint if exporter == 'otlp' else 'N/A (console mode)'}`
-            - **Status:** `{os.getenv('ENABLE_OPENTELEMETRY', 'true')}`
+            **Settings:**
+            - **Endpoint:** `{endpoint}`
+            - **Tracing V2:** `{tracing_enabled}`
             """)
 
-            # Exporter info
-            if exporter == "console":
-                st.info("📝 Using console exporter - traces printed to stdout")
-            elif exporter == "otlp":
-                st.info("🌐 Using OTLP exporter - traces sent to collector")
-            elif exporter == "jaeger":
-                st.info("🔍 Using Jaeger exporter - traces sent to Jaeger")
+        # Link to LangSmith dashboard
+        st.markdown(f"[🔗 View Traces in LangSmith Dashboard →](https://smith.langchain.com/)")
 
-            # What's available
-            with st.expander("📊 What's Available"):
-                st.markdown("""
-                **Distributed Tracing Features:**
-                - ✅ Trace IDs and Span IDs in agent state
-                - ✅ Service-level instrumentation
-                - ✅ Performance metrics
-                - ✅ Error tracking
-                - ✅ Custom attributes per span
-                - ✅ Context propagation
-
-                **Supported Exporters:**
-                - `console`: Print traces to stdout
-                - `otlp`: Send to OpenTelemetry Collector
-                - `jaeger`: Send to Jaeger backend
-                """)
-        else:
-            st.info("ℹ️ OpenTelemetry Not Configured")
+        # What's being tracked
+        with st.expander("📊 What's Being Tracked by LangSmith"):
             st.markdown("""
-            **Current Status:**
-            - OpenTelemetry is available but not enabled
-            - Can be enabled via environment variables
-            - Useful for distributed tracing in production
+            **Automatically tracked in LangSmith:**
+            - ✅ **LangGraph workflow execution** - Complete 7-node state machine
+            - ✅ **LLM calls** - Intent classification (OpenAI GPT-4.1-mini)
+            - ✅ **Tool executions** - All 4 tools (API, RAG, SQL, Calculator)
+            - ✅ **Node transitions** - Every state change across 7 nodes
+            - ✅ **Input/Output** - Query → Intent → Tools → Results → Answer
+            - ✅ **Error tracking** - Tool failures and retry attempts
+            - ✅ **Latencies** - Per-node and end-to-end timing
+            - ✅ **Parent-child relationships** - Complete execution hierarchy
+
+            **Available in LangSmith UI:**
+            - Trace timeline visualization
+            - Cost tracking for LLM calls
+            - Performance analytics
+            - Error rate monitoring
+            - Prompt/response comparison
             """)
+    else:
+        st.warning("⚠️ LangSmith Not Configured")
+        st.markdown("""
+        **Current Status:**
+        - Tracing framework is loaded
+        - API key not set (traces won't be sent to cloud)
+        - Local traces still available in agent response
+        """)
 
-            with st.expander("📝 How to Enable OpenTelemetry"):
-                st.markdown("""
-                **For Development (Console):**
-                Add to `.env` file:
-                ```
-                ENABLE_OPENTELEMETRY=true
-                OTEL_SERVICE_NAME=intent-agent
-                OTEL_EXPORTER=console
-                ```
+        with st.expander("📝 How to Enable LangSmith"):
+            st.markdown("""
+            **Step 1:** Get API key from [smith.langchain.com](https://smith.langchain.com/)
 
-                **For Production (OTLP):**
-                ```
-                ENABLE_OPENTELEMETRY=true
-                OTEL_SERVICE_NAME=intent-agent
-                OTEL_EXPORTER=otlp
-                OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:4317
-                ```
+            **Step 2:** Add to `.env` file:
+            ```bash
+            LANGCHAIN_TRACING_V2=true
+            LANGCHAIN_API_KEY=lsv2_pt_your-key-here
+            LANGCHAIN_PROJECT=intent-agent-poc
+            ```
 
-                **For Jaeger:**
-                ```
-                ENABLE_OPENTELEMETRY=true
-                OTEL_SERVICE_NAME=intent-agent
-                OTEL_EXPORTER=jaeger
-                JAEGER_AGENT_HOST=localhost
-                JAEGER_AGENT_PORT=6831
-                ```
+            **Step 3:** Restart the application:
+            ```bash
+            streamlit run streamlit_app.py
+            ```
 
-                Then restart the application.
-                """)
+            **What you'll get:**
+            - Cloud-based trace storage and analysis
+            - Visual timeline of execution
+            - Cost tracking and analytics
+            - Team collaboration features
+            """)
 
     st.markdown("---")
 
