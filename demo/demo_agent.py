@@ -28,6 +28,7 @@ import json
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from agent import run_agent, get_graph_visualization
+from utils.trace_cache import cache_agent_execution
 
 # Track all agent executions for observability
 DEMO_EXECUTIONS = []
@@ -194,12 +195,19 @@ def run_demo_query(query: str, description: str = "", section: str = ""):
             consistency = data_quality.get('consistency', 0)
             log(f"Data quality: completeness={completeness:.0%}, consistency={consistency:.0%}", "INFO")
 
-        # Save execution for observability
+        # Save execution for observability (both local and cache)
         DEMO_EXECUTIONS.append({
             "query": query,
             "result": result,
             "timestamp": datetime.now().isoformat()
         })
+
+        # Cache execution for observability tab
+        try:
+            cache_agent_execution(result, query)
+            log("✓ Cached execution trace for observability", "INFO")
+        except Exception as e:
+            log(f"Warning: Could not cache execution: {e}", "WARNING")
 
         return True
 
@@ -384,6 +392,7 @@ def main():
         with open(DEMO_RESULTS_FILE, 'w') as f:
             json.dump(DEMO_EXECUTIONS, f, indent=2, default=str)
         log(f"✓ Saved {len(DEMO_EXECUTIONS)} executions to {DEMO_RESULTS_FILE}", "SUCCESS")
+        log(f"✓ All traces cached for observability tab in Streamlit", "SUCCESS")
     except Exception as e:
         log(f"Warning: Could not save demo executions: {e}", "WARNING")
 
@@ -424,10 +433,14 @@ def main():
     print("  • format_response - Response formatting")
 
     print("\n📚 Next Steps:")
+    print("  • View traces in Streamlit: streamlit run streamlit_app.py → Observability tab")
     print("  • Run tests: python test/test_agent.py")
     print("  • Try interactive CLI: python main.py")
-    print("  • Try web UI: streamlit run streamlit_app.py")
     print("  • Read docs: agent/README.md")
+    print("\n📡 Observability:")
+    print(f"  • All {len(DEMO_EXECUTIONS)} demo executions cached for 24 hours")
+    print("  • View in Streamlit → Observability tab → Agent Executions")
+    print("  • Each execution shows: query, trace, orchestration log, feedback iterations")
 
     print("\n" + "="*80 + "\n")
 
