@@ -143,12 +143,12 @@ def fetch_langsmith_traces() -> Optional[List[Dict[str, Any]]]:
         # Get runs for the project (last 24 hours) - using POST /runs/query
         runs_url = f"{base_url}/runs/query"
 
-        # LangSmith API requires at least one of: session, id, parent_run, trace, or reference_example
-        # Using filter to query by project and time range
+        # LangSmith API requires a filter string to specify project
+        # Using filter syntax: eq(project, "project-name")
         start_time = (datetime.now() - timedelta(hours=24)).isoformat()
 
         query_body = {
-            "session": [project_name],  # Session ID is the project name
+            "filter": f'eq(session_name, "{project_name}")',
             "limit": 100,
             "start_time": start_time,
             "is_root": True  # Only get root runs (not sub-runs)
